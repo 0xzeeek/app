@@ -1,0 +1,32 @@
+.notification {
+    position: fixed;
+    top: -100px; /* Hidden by default */
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 1rem 2rem;
+    background-color: #333;
+    color: white;
+    border-radius: 5px;
+    font-size: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    transition: top 0.4s ease-in-out;
+    text-align: center;
+  }
+  
+  .notification.visible {
+    top: 20px; /* Slide down when visible */
+  }
+  
+  .notification.error {
+    background-color: #e74c3c;
+  }
+  
+  .notification.success {
+    background-color: #2ecc71;
+  }
+  
+  .notification.info {
+    background-color: #3498db;
+  }
+  

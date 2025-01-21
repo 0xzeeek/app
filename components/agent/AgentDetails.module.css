@@ -1,0 +1,157 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.imageWrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.agentImage {
+  object-fit: cover;
+}
+
+.headerInfo {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  align-items: center;
+  gap: 32px;
+}
+
+.headerInfoLeft, .headerInfoRight {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.headerInfoLeft h1 {
+  margin: 0;
+  line-height: 1.2;
+}
+
+.headerInfoLeft h3 {
+  margin: 0;
+  color: #666;
+}
+
+.headerInfoRight {
+  justify-content: flex-start;
+  padding-top: 0.25rem;
+}
+
+.twitterLink {
+  color: #1DA1F2;
+  text-decoration: none;
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.xIcon {
+  width: 20px;
+  height: 20px;
+  color: #666;
+}
+
+.twitterLink:hover {
+  text-decoration: underline;
+}
+
+.twitterLink:hover .xIcon {
+  color: #1DA1F2;
+}
+
+.title {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  font-weight: 600;
+}
+
+.mainContent {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.chartSection {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tradingForm {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chatSection {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bio {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #999;
+}
+
+.tokenInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.label {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.value {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+}

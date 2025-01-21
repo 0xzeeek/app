@@ -1,0 +1,69 @@
+.card {
+  width: 300px;
+  display: flex;
+  padding: 1rem;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  margin: 1rem 0;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.imageContainer {
+  flex-shrink: 0;
+  margin-right: 1rem;
+}
+
+.agentImage {
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.content {
+  flex: 1;
+}
+
+.content h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-family: var(--creato);
+  font-weight: 400;
+}
+
+.ticker {
+  color: #666;
+  font-size: 0.9em;
+  font-family: var(--creato);
+  font-weight: 400;
+}
+
+.xHandle {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+  color: var(--primary);
+  font-family: var(--creato);
+}
+
+.xBio {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+  color: #4a5568;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  font-family: var(--creato);
+}
+
+.loading {
+  color: #888;
+  font-style: italic;
+  font-family: var(--creato);
+}
