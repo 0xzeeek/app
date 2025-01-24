@@ -6,13 +6,13 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "3agent-dev-agentimage-cazhuxxs.s3.us-east-1.amazonaws.com",
+        hostname: "3agent-dev-agentimage-nbuobfoc.s3.us-east-1.amazonaws.com",
         port: "",
         pathname: "**",
       },
       {
         protocol: "https",
-        hostname: "3agent-production-agentimage-cazhuxxs.s3.us-east-1.amazonaws.com",
+        hostname: "3agent-production-agentimage-nbuobfoc.s3.us-east-1.amazonaws.com",
         port: "",
         pathname: "**",
       },

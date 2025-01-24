@@ -9,10 +9,10 @@ export default async function HomePage() {
   const result = await response.json();
 
   if (!result.success) {
-    throw new Error("Failed to fetch agents");
+    console.error(new Error("Failed to fetch agents", { cause: result.error }));
   }
 
-  const agents: Agent[] = await result.data;
+  const agents: Agent[] = result.data;
 
   return (
     <div className={styles.main}>

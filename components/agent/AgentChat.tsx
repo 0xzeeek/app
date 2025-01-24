@@ -1,14 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Agent } from "@/lib/types";
+import { Agent, Message } from "@/lib/types";
 import styles from "./AgentChat.module.css";
-
-interface Message {
-  id: number;
-  text: string;
-  sender: "user" | "agent";
-  timestamp: Date;
-}
 
 interface AgentChatProps {
   agent: Agent;

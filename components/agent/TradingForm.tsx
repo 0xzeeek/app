@@ -15,7 +15,7 @@ export default function TradingForm({ agent }: TradingFormProps) {
   const [amount, setAmount] = useState("");
   const [isBuying, setIsBuying] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [showError, setShowError] = useState("");
   const { loading: notificationLoading, buy, sell, approve, approved } = useEthereum({ agent });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,25 +25,25 @@ export default function TradingForm({ agent }: TradingFormProps) {
     try {
       if (isBuying) {
         await buy(amount);
+        setAmount("");
       } else {
         if (!approved) {
           await approve();
         } else {
           await sell(amount);
+          setAmount("");
         }
       }
     } catch (error) {
-      console.error("Transaction failed:", error);
-      // You might want to add error handling UI here
+      setShowError("Transaction failed: " + error);
     } finally {
       setIsLoading(false);
-      setAmount(""); // Reset form after transaction
     }
   };
 
   return (
     <>
-      {/* {showError && <Notification message={showError} type="error" onClose={handleNotificationClose} />} */}
+      {showError && <Notification message={showError} type="error" />}
       {notificationLoading.isLoading && <Notification message={notificationLoading.message} type="info" />}
       <form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.tabs}>

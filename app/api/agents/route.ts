@@ -19,7 +19,7 @@ export async function GET() {
     const totalAgents = Number(totalAgentsBigInt); // Convert from bigint to number
 
     // TODO: decide how to paginate the agents
-    const count = Math.min(totalAgents, 20);
+    const count = Math.min(totalAgents, 10);
     console.log(`Total agents: ${totalAgents}`);
 
     const agents: Agent[] = [];
@@ -27,27 +27,36 @@ export async function GET() {
     // If totalAgents is 10, we get [0..9], last 20 means [0..9], if total 100 means [80..99]
     const startIndex = totalAgents > 0 ? totalAgents - count : 0;
 
-    for (let i = startIndex; i < startIndex + count; i++) {
+    // Create an array of promises for parallel execution
+    const agentPromises = Array.from({ length: count }, async (_, index) => {
+      const i = startIndex + index;
       const { token, curve } = await factory.deployments(i);
       const { success, data } = await getAgentDetails(token);
 
       if (!success || !data) {
-        continue;
+        return null;
       }
 
-      const { name, ticker, user, image, username, bio } = data;
+      const { name, ticker, user, image, username, bio, email, description, characterFile } = data;
 
-      agents.push({
+      return {
         address: token,
-        name: name,
-        ticker: ticker,
+        name,
+        ticker,
         curve: curve.address,
-        image: image,
-        user: user,
-        username: username,
-        bio: bio,
-      });
-    }
+        image,
+        user,
+        username,
+        bio,
+        email,
+        description,
+        characterFile,
+      };
+    });
+
+    // Execute all promises in parallel and filter out null results
+    const results = await Promise.all(agentPromises);
+    agents.push(...results.filter(agent => agent !== null));
 
     return new Response(JSON.stringify({ success: true, data: agents }), { status: 200 });
   } catch (error) {

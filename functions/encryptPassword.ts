@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-// TODO: move to .env
+// TODO: move to .env and update
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "zJl4Q61obP6eF/vJ1MtsRbZTjLGRiWUOyB4AMe+slOw=";
 const IV_LENGTH = 16;
 

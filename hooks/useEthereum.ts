@@ -111,10 +111,23 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         value: price, // already a bigint
       });
 
+      setLoading({ isLoading: true, message: "Finalizing Buy" });
+
+      await publicClient?.waitForTransactionReceipt({
+        hash: contractResult,
+      });
+
+      setLoading({ isLoading: false, message: "" });
+
       console.log("Transaction hash:", contractResult);
       console.log("Tx receipt awaited in another step if needed.");
     } catch (error) {
-      console.error(error);
+      // TODO: handle sentry here
+      if (error instanceof Error && error.message.includes("User rejected the request.")) {
+        return
+      } else {
+        console.error(error);
+      }
     }
   };
 
@@ -124,21 +137,6 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         console.error("No agent found");
         return;
       }
-      // get supply
-      const supply = (await readContract(config, {
-        abi: CURVE_ABI,
-        address: agent.curve,
-        functionName: "circulatingSupply",
-        args: [],
-      })) as bigint;
-
-      // get sell price
-      const price = (await readContract(config, {
-        abi: CURVE_ABI,
-        address: agent.curve,
-        functionName: "getSellPrice",
-        args: [supply, amount],
-      })) as bigint;
 
       if (!approved) {
         await approve();
@@ -153,14 +151,11 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
 
       setLoading({ isLoading: true, message: "Finalizing Sell" });
 
-      const sellReceipt = await publicClient?.waitForTransactionReceipt({
+      await publicClient?.waitForTransactionReceipt({
         hash: sellHash,
       });
-      console.log("Sell tx mined:", sellReceipt);
 
       setLoading({ isLoading: false, message: "" });
-
-      console.log("Transaction data:", sellReceipt);
     } catch (error) {
       console.error(error);
       // TODO: show error to the user

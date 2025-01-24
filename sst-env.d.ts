@@ -6,5 +6,21 @@ import "sst"
 export {}
 declare module "sst" {
   export interface Resource {
+    "AgentImage": {
+      "name": string
+      "type": "sst.aws.Bucket"
+    }
+    "CharacterFile": {
+      "name": string
+      "type": "sst.aws.Bucket"
+    }
+    "Next": {
+      "type": "sst.aws.Nextjs"
+      "url": string
+    }
+    "RateLimitData": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
   }
 }

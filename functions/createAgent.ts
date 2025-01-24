@@ -1,57 +1,74 @@
-import { encryptPassword, getTwitterData } from "@/functions";
+import axios from "axios";
+import { encryptPassword, getTwitterData, createCharacterFile } from "@/functions";
 
-export default async function createAgent(
-  name: string,
-  ticker: string,
-  user: `0x${string}`,
-  token: `0x${string}`,
-  curve: `0x${string}`,
-  image: string,
-  background: string,
-  username: string,
-  password: string
-) {
+export default async function createAgent({
+  token,
+  name,
+  ticker,
+  curve,
+  user,
+  image,
+  background,
+  username,
+  email,
+  password,
+}: {
+  token: `0x${string}`;
+  name: string;
+  ticker: string;
+  curve: `0x${string}`;
+  user: `0x${string}`;
+  image: string;
+  background: string;
+  username: string;
+  email: string;
+  password: string;
+}) {
   try {
-    const twitterData = await getTwitterData(username);
+    const [characterFile, twitterData] = await Promise.all([
+      createCharacterFile(name, background),
+      getTwitterData(username),
+    ]);
+    const encryptedPassword = encryptPassword(password);
 
-    if (!twitterData.success) {
-      throw new Error('Failed to fetch twitter data'); // TODO: maybe remove this so if twitter data is failing we can still create an agent
+    const createResponse = await axios.post(`${process.env.SERVER_URL}/create`, {
+      agentId: token,
+      name,
+      ticker,
+      curve,
+      user,
+      characterFile,
+      image,
+      background,
+      bio: twitterData.data?.bio || "",
+      username,
+      email,
+      password: encryptedPassword,
+    });
+
+    if (!createResponse.data?.success) {
+      console.error(new Error(createResponse.data.error));
+      return { success: false, message: "Failed to create agent" };
     }
 
-    // TODO: create and upload character file
+    const startResponse = await axios.post(`${process.env.SERVER_URL}/start`, {
+      agentId: token,
+      characterFile,
+      twitterCredentials: {
+        username,
+        email,
+        password: encryptedPassword,
+      },
+    });
 
-    // update to call lambda function to create agent
-
-    // await ddb.send(
-    //   new PutCommand({
-    //     TableName: Resource.AgentData.name,
-    //     Item: {
-    //       agent: token,
-    //       name,
-    //       ticker,
-    //       user,
-    //       curve,
-    //       image,
-    //       bio: twitterData.data?.bio || '',
-    //       background,
-    //       characterFile,
-    //       username,
-    //       password: encryptPassword(password),
-    //       remove: false,
-    //     },
-    //   })
-    // );
+    if (!startResponse.data?.success) {
+      console.error(new Error(startResponse.data.error));
+      return { success: false, message: "Failed to start agent" };
+    }
 
     return { success: true };
-  } catch (error: unknown) {
-
-    if (error instanceof Error) {
-      console.error(error);
-      console.error(new Error(`Failed to save user info: ${error.message}`));
-      return { success: false, message: 'Failed to save user info' };
-    }
-
-    console.error('An unknown error occurred:', error);
-    return { success: false, message: 'An unknown error occurred' };
+  } catch (error) {
+    console.error(new Error("An unknown error occurred:", { cause: error }));
+    return { success: false, message: "An unknown error occurred in createAgent" };
   }
 }

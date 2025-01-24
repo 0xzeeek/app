@@ -2,17 +2,21 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import Notification from "@/components/utils/Notification";
-import styles from "./page.module.css";
+import { useRouter } from "next/navigation";
 import { useEthereum } from "@/hooks/useEthereum";
 import { useAccount } from "wagmi";
+import { FaRobot, FaTwitter } from "react-icons/fa";
+import { HiCheck } from "react-icons/hi";
+
 import { CreateResult, ErrorResult } from "@/lib/types";
-import { FaRobot, FaTwitter } from 'react-icons/fa';
-import { HiCheck } from 'react-icons/hi';
+
+import styles from "./page.module.css";
 
 export default function CreatePage() {
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [showError, setShowError] = useState<string | null>(null);
@@ -29,7 +33,7 @@ export default function CreatePage() {
   });
 
   const router = useRouter();
-  const { create, loading } = useEthereum();
+  const { create } = useEthereum();
   const { address: userAddress } = useAccount();
 
   // Ref for the file input
@@ -39,7 +43,11 @@ export default function CreatePage() {
     setVerifyingTwitter(true);
     const result = await fetch("/api/verify", {
       method: "POST",
-      body: JSON.stringify({ username: agentDetails.username, password: agentDetails.password, email: agentDetails.email }),
+      body: JSON.stringify({
+        username: agentDetails.username,
+        password: agentDetails.password,
+        email: agentDetails.email,
+      }),
     });
     const { success } = await result.json();
     setVerifyingTwitter(false);
@@ -48,9 +56,9 @@ export default function CreatePage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setAgentDetails(prev => ({
+    setAgentDetails((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -58,15 +66,16 @@ export default function CreatePage() {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       setImage(file);
-      setAgentDetails(prev => ({
+      setAgentDetails((prev) => ({
         ...prev,
-        image: file
+        image: file,
       }));
     }
   };
 
   const handleSubmit = async () => {
-    const { name, ticker, image, background, username, password } = agentDetails;
+    setLoading(true);
+    const { name, ticker, image, background, username, email, password } = agentDetails;
     if (!name || !ticker || !image || !background) {
       setShowError("Missing required fields");
       return;
@@ -76,7 +85,8 @@ export default function CreatePage() {
     const formData = new FormData();
     formData.append("image", image);
 
-    const uploadResult = await fetch("/api/upload", { // TODO: rate limit this endpoint
+    const uploadResult = await fetch("/api/upload", {
+      // TODO: rate limit this endpoint
       method: "POST",
       body: formData,
     });
@@ -90,6 +100,7 @@ export default function CreatePage() {
     }
 
     // Create the agent via the Ethereum contract
+    setNotification("Deploying onchain.");
     const createResult = await create(name, ticker);
 
     if ((createResult as ErrorResult).message) {
@@ -99,22 +110,24 @@ export default function CreatePage() {
 
     const { token, curve } = createResult as CreateResult;
 
-    // Save metadata via backend API call
-    const metadataRes = await fetch(`/api/create/${userAddress}`, {
+    // Create the agent
+    setNotification("Starting the agent.");
+    const createResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/create/${userAddress}`, {
       method: "POST",
-      body: JSON.stringify({ token, curve, image: imageUrl, background, name, ticker, username, password }),
+      body: JSON.stringify({ name, ticker, token, curve, image: imageUrl, background, username, email, password }),
     });
-    
-    const { success, message } = await metadataRes.json();
+
+    const { success, message } = await createResponse.json();
 
     if (!success) {
       setShowError(message);
       return;
     }
 
+    setNotification("Agent created.");
+    setLoading(false);
     router.push(`/agent/${token}`);
   };
-
 
   useEffect(() => {
     if (image) {
@@ -171,21 +184,24 @@ export default function CreatePage() {
 
   return (
     <>
+      {/* Regular notifications */}
+      {notification && <Notification message={notification} type="info" onClose={handleNotificationClose} />}
+
+      {/* Error notifications */}
       {showError && <Notification message={showError} type="error" onClose={handleNotificationClose} />}
-      {loading.isLoading && <Notification message={loading.message} type="info" duration={8000} />}
+
+      {/* Loading notifications */}
+      {/* {loading.isLoading && <Notification message={loading.message} type="info" duration={8000} />} */}
+
       <div className={styles.container}>
         <div className={styles.stepsContainer}>
           <div className={`${styles.step} ${step >= 1 ? styles.active : ""}`}>
-            <div className={styles.stepIcon}>
-              {step > 1 ? <HiCheck /> : <FaRobot />}
-            </div>
+            <div className={styles.stepIcon}>{step > 1 ? <HiCheck /> : <FaRobot />}</div>
             <span>Agent Details</span>
           </div>
           <div className={`${styles.stepConnector} ${step >= 2 ? styles.active : ""}`} />
           <div className={`${styles.step} ${step >= 2 ? styles.active : ""}`}>
-            <div className={styles.stepIcon}>
-              {step > 2 ? <HiCheck /> : <FaTwitter />}
-            </div>
+            <div className={styles.stepIcon}>{step > 2 ? <HiCheck /> : <FaTwitter />}</div>
             <span>Connect Twitter</span>
           </div>
           <div className={`${styles.stepConnector} ${step === 3 ? styles.active : ""}`} />
@@ -197,7 +213,7 @@ export default function CreatePage() {
           </div>
         </div>
 
-        <div className={`${styles.formContainer} ${loading.isLoading ? styles.loading : ""}`}>
+        <div className={`${styles.formContainer} ${loading ? styles.loading : ""}`}>
           {step === 1 && (
             <div className={styles.stepContent}>
               <h2>Agent Details</h2>
@@ -255,10 +271,7 @@ export default function CreatePage() {
                   accept="image/*"
                 />
               </div>
-              <button 
-                className={styles.nextButton} 
-                onClick={handleNextStep}
-              >
+              <button className={styles.nextButton} onClick={handleNextStep}>
                 Next Step
               </button>
             </div>
@@ -304,8 +317,8 @@ export default function CreatePage() {
                 <button className={styles.backButton} onClick={() => setStep(1)}>
                   Back
                 </button>
-                <button 
-                  className={styles.nextButton} 
+                <button
+                  className={styles.nextButton}
                   onClick={handleNextStep}
                   disabled={!agentDetails.username || !agentDetails.password}
                 >
@@ -320,21 +333,25 @@ export default function CreatePage() {
               <h2>Create Your Agent</h2>
               <div className={styles.summary}>
                 <h3>Summary</h3>
-                <p><strong>Name:</strong> {agentDetails.name}</p>
-                <p><strong>Ticker:</strong> {agentDetails.ticker}</p>
-                <p><strong>Background:</strong> {agentDetails.background}</p>
-                <p><strong>Twitter:</strong> @{agentDetails.username}</p>
+                <p>
+                  <strong>Name:</strong> {agentDetails.name}
+                </p>
+                <p>
+                  <strong>Ticker:</strong> {agentDetails.ticker}
+                </p>
+                <p>
+                  <strong>Background:</strong> {agentDetails.background}
+                </p>
+                <p>
+                  <strong>Twitter:</strong> @{agentDetails.username}
+                </p>
               </div>
               <div className={styles.buttonGroup}>
                 <button className={styles.backButton} onClick={() => setStep(2)}>
                   Back
                 </button>
-                <button 
-                  className={styles.createButton} 
-                  onClick={handleSubmit}
-                  disabled={loading.isLoading}
-                >
-                  {loading.isLoading ? "Creating..." : "Create Agent"}
+                <button className={styles.createButton} onClick={handleSubmit} disabled={loading}>
+                  {loading ? `Creating ${agentDetails.name}` : "Create Agent"}
                 </button>
               </div>
             </div>

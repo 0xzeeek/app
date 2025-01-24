@@ -31,9 +31,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ use
 
   try {
     const { user } = await params;
-    const { name, ticker, token, curve, image, background, username, password } = await request.json();
+    const { name, ticker, token, curve, image, background, username, email, password } = await request.json();
 
-    await createAgent(name, ticker, user, token, curve, image, background, username, password);
+    await createAgent({ name, ticker, user, token, curve, image, background, username, email, password });
 
     return new Response(JSON.stringify({ success: true, data: {} }), { status: 200 });
   } catch (error) {
