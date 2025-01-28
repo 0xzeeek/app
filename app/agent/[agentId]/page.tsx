@@ -5,14 +5,14 @@ import styles from "./page.module.css";
 import { Agent } from "@/lib/types";
 
 interface AgentPageProps {
-  params: { address: string };
+  params: { agentId: string };
 }
 
 export default async function AgentPage({ params }: AgentPageProps) {
-  const { address } = await params;
+  const { agentId } = await params;
   // const agent: Agent | undefined = (await getAgentDetails(address)).data;
 
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/agent/${address}`);
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/agent/${agentId}`);
   const result = await response.json();
 
   if (!result.success) {
@@ -43,7 +43,7 @@ export default async function AgentPage({ params }: AgentPageProps) {
         </div>
         <div className={styles.details}>
           <p>
-            <strong>Address:</strong> {agent?.address}
+            <strong>Address:</strong> {agent?.agentId}
           </p>
           <p>
             <strong>Creator:</strong> {agent?.user}

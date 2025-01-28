@@ -51,20 +51,21 @@ export default async function createAgent({
       return { success: false, message: "Failed to create agent" };
     }
 
-    const startResponse = await axios.post(`${process.env.SERVER_URL}/start`, {
-      agentId: token,
-      characterFile,
-      twitterCredentials: {
-        username,
-        email,
-        password: encryptedPassword,
-      },
-    });
+    // TODO: turn on start agent
+    // const startResponse = await axios.post(`${process.env.SERVER_URL}/start`, {
+    //   agentId: token,
+    //   characterFile,
+    //   twitterCredentials: {
+    //     username,
+    //     email,
+    //     password: encryptedPassword,
+    //   },
+    // });
 
-    if (!startResponse.data?.success) {
-      console.error(new Error(startResponse.data.error));
-      return { success: false, message: "Failed to start agent" };
-    }
+    // if (!startResponse.data?.success) {
+    //   console.error(new Error(startResponse.data.error));
+    //   return { success: false, message: "Failed to start agent" };
+    // }
 
     return { success: true };
   } catch (error) {

@@ -30,28 +30,17 @@ export async function GET() {
     // Create an array of promises for parallel execution
     const agentPromises = Array.from({ length: count }, async (_, index) => {
       const i = startIndex + index;
-      const { token, curve } = await factory.deployments(i);
-      const { success, data } = await getAgentDetails(token);
+      const { token: agentId } = await factory.deployments(i);
+      const { success, data } = await getAgentDetails(agentId);
 
       if (!success || !data) {
         return null;
       }
 
-      const { name, ticker, user, image, username, bio, email, description, characterFile } = data;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...rest } = data;
 
-      return {
-        address: token,
-        name,
-        ticker,
-        curve: curve.address,
-        image,
-        user,
-        username,
-        bio,
-        email,
-        description,
-        characterFile,
-      };
+      return rest;
     });
 
     // Execute all promises in parallel and filter out null results

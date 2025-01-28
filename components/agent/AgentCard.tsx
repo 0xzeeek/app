@@ -15,7 +15,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
   const xBio = agent.bio && agent.bio.length > 100 ? `${agent.bio.substring(0, 100)}...` : agent.bio;
 
   return (
-    <Link href={`/agent/${agent.address}`} className={styles.card}>
+    <Link href={`/agent/${agent.agentId}`} className={styles.card}>
       <div className={styles.imageContainer}>
         <Image
           src={agent.image || '/default-agent.png'}

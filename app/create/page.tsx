@@ -62,14 +62,52 @@ export default function CreatePage() {
     }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      setImage(file);
-      setAgentDetails((prev) => ({
-        ...prev,
-        image: file,
-      }));
+      
+      // Create an image element to get dimensions
+      const imgElement = document.createElement('img');
+      const imageUrl = URL.createObjectURL(file);
+      
+      imgElement.onload = async () => {
+        // Calculate the square crop dimensions
+        const size = Math.min(imgElement.width, imgElement.height);
+        const x = (imgElement.width - size) / 2;
+        const y = (imgElement.height - size) / 2;
+        
+        // Create canvas for cropping
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          console.error('Could not get canvas context');
+          return;
+        }
+        
+        // Draw cropped image
+        ctx.drawImage(imgElement, x, y, size, size, 0, 0, size, size);
+        
+        // Convert to file
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            console.error('Could not create blob');
+            return;
+          }
+          
+          const croppedFile = new File([blob], 'cropped.jpg', { type: 'image/jpeg' });
+          setImage(croppedFile);
+          setImagePreview(URL.createObjectURL(croppedFile));
+          setAgentDetails((prev) => ({
+            ...prev,
+            image: croppedFile,
+          }));
+        }, 'image/jpeg');
+      };
+      
+      imgElement.src = imageUrl;
     }
   };
 

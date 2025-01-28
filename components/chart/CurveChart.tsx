@@ -27,9 +27,6 @@ export default function CurveChart({ address }: CurveChartProps) {
   // Pull candlestick data (ohlcData) and other state from the useDataFeed hook
   const { ohlcData, trades, loading, error } = useDataFeed(address);
 
-  // TODO: remove this
-  console.log(trades);
-
   useEffect(() => {
     if (!chartContainerRef.current) return;
 

@@ -11,12 +11,31 @@ interface TradingFormProps {
   agent: Agent;
 }
 
+const UNISWAP_SWAP_URL = "https://app.uniswap.org/swap";
+
 export default function TradingForm({ agent }: TradingFormProps) {
   const [amount, setAmount] = useState("");
   const [isBuying, setIsBuying] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showError, setShowError] = useState("");
-  const { loading: notificationLoading, buy, sell, approve, approved } = useEthereum({ agent });
+  const { loading: notificationLoading, buy, sell, approve, approved, finalized } = useEthereum({ agent });
+
+  if (finalized) {
+    const uniswapUrl = `${UNISWAP_SWAP_URL}?outputCurrency=${agent.agentId}&chain=sepolia`;
+    return (
+      <div className={styles.finalizedMessage}>
+        <p>This agent&apos;s bonding curve has been finalized.</p>
+        <a 
+          href={uniswapUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.uniswapLink}
+        >
+          Trade on Uniswap ↗
+        </a>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

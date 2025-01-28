@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import CurveChart from "@/components/chart/CurveChart";
 import TradingForm from "@/components/agent/TradingForm";
@@ -9,12 +9,30 @@ import AgentChat from "@/components/agent/AgentChat";
 import { Agent } from "@/lib/types";
 
 import styles from "./AgentDetails.module.css";
+import { useEthereum } from "@/hooks/useEthereum";
 
 interface AgentDetailsProps {
   agent: Agent;
 }
 
 export default function AgentDetails({ agent }: AgentDetailsProps) {
+  const { fetchPriceAndMarketCap } = useEthereum({ agent });
+  const [price, setPrice] = useState(0);
+  const [marketCap, setMarketCap] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const result = await fetchPriceAndMarketCap();
+      if (result) {
+        const { priceInETH, marketCapInETH } = result;
+        setPrice(priceInETH);
+        setMarketCap(marketCapInETH);
+      }
+    };
+
+    fetchData();
+  }, [agent]);
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -39,11 +57,11 @@ export default function AgentDetails({ agent }: AgentDetailsProps) {
             <div className={styles.tokenInfo}>
                 <div className={styles.infoItem}>
                   <span className={styles.label}>Price:</span>
-                  <span className={styles.value}>${agent.price?.toFixed(2) || '0.00'}</span>
+                  <span className={styles.value}>${price}</span>
                 </div>
                 <div className={styles.infoItem}>
                   <span className={styles.label}>Market Cap:</span>
-                  <span className={styles.value}>${agent.marketCap?.toLocaleString() || '0'}</span>
+                  <span className={styles.value}>{marketCap}</span>
                 </div>
               </div>
             

@@ -1,20 +1,95 @@
+// useEthereum.ts
+
 import { useState } from "react";
-import { usePublicClient, useWriteContract } from "wagmi";
+import { usePublicClient, useWriteContract, useWalletClient, useReadContract } from "wagmi";
 import { readContract } from "@wagmi/core";
+import { ethers } from "ethers";
+
 import CURVE_ABI from "@/lib/curveAbi.json";
 import FACTORY_ABI from "@/lib/factoryAbi.json";
 import ERC20_ABI from "@/lib/erc20Abi.json";
-import { sepolia } from "@wagmi/core/chains";
-import { ethers } from "ethers";
 
+import { sepolia } from "@wagmi/core/chains"; // TODO: Confirm chain usage
 import { Agent, CreateResult, ErrorResult } from "@/lib/types";
-
 import config from "@/lib/wagmiConfig";
+import { getPoolData } from "@/utils";
 
-// TODO: update to env variable
-// const FACTORY_ADDRESS = (process.env.NEXT_PUBLIC_FACTORY_ADDRESS || "0x") as `0x${string}`;
+// -----------------------------, BigintIsh
+// Uniswap V3, SwapQuoter imports
+// -----------------------------
 
-const FACTORY_ADDRESS = "0xc72e0cF6E650dAb2bd1f312C59F459A31046Fdc2";
+import { TradeType, CurrencyAmount, Token, BigintIsh } from "@uniswap/sdk-core";
+import { Route, SwapQuoter } from "@uniswap/v3-sdk";
+/**
+ * The QuoterV2 contract address on Sepolia for Uniswap V3 (verify as well).
+ * Often 0x61fFE014bA17930e677c9e4cA9A5eF521eD62644 for mainnet,
+ * but must confirm for Sepolia if it exists.
+ */
+const QUOTER_CONTRACT_ADDRESS = "0xEd1f6473345F45b75F8179591dd5bA1888cf2FB3"; // TODO: update to base
+
+/**
+ * WETH9 address on Sepolia.
+ */
+const WETH_ADDRESS = "0xfff9976782d46cc05630d1f6ebab18b2324d6b14";
+
+/**
+ * Example pool fee. 3000 = 0.3%, 500 = 0.05%, etc.
+ * Adjust to match your actual pool's fee tier
+ */
+const POOL_FEE = 100;
+
+/**
+ * factory address
+ */
+const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`;
+
+/**
+ * Helper to parse a decimal string amount to BigInt with 18 decimals
+ */
+function parseAmount(amount: string, decimals = 18): bigint {
+  return ethers.parseUnits(amount, decimals);
+}
+
+/**
+ * Create a Uniswap Token object for your Agent's token
+ */
+function getAgentTokenObject(agentAddr: string, symbol: string) {
+  // TODO: update to base chainId
+  return new Token(11155111, agentAddr, 18, symbol || "AGT", "AgentToken");
+}
+
+/**
+ * Create a Uniswap Token object for WETH
+ */
+function getWethTokenObject() {
+  // TODO: update to base chainId
+  return new Token(11155111, WETH_ADDRESS, 18, "WETH", "Wrapped ETH");
+}
+
+/**
+ * Quote a swap using the Uniswap V3 Quoter
+ */
+async function getQuote(route: Route<Token, Token>, amountIn: BigintIsh, provider: ethers.Provider): Promise<bigint> {
+  // Construct the Quoter calldata
+  const { calldata } = SwapQuoter.quoteCallParameters(
+    route,
+    CurrencyAmount.fromRawAmount(route.input, amountIn),
+    TradeType.EXACT_INPUT,
+    { useQuoterV2: true }
+  );
+
+  // Call the quoter contract
+  const quoteCallReturnData = await provider.call({
+    to: QUOTER_CONTRACT_ADDRESS,
+    data: calldata,
+  });
+
+  // Decode the quoted output
+  const result = ethers.AbiCoder.defaultAbiCoder().decode(["uint256"], quoteCallReturnData);
+  const quotedAmountOut = result[0] as bigint;
+
+  return quotedAmountOut;
+}
 
 interface UseEthereumProps {
   agent?: Agent;
@@ -26,19 +101,34 @@ type LoadingMessage = {
 };
 
 export function useEthereum({ agent }: UseEthereumProps = {}) {
-  const [loading, setLoading] = useState<LoadingMessage>({ isLoading: false, message: "" });
+  const [loading, setLoading] = useState<LoadingMessage>({
+    isLoading: false,
+    message: "",
+  });
   const [approved, setApproved] = useState(false);
+  const [hasAddedTokenInfo, setHasAddedTokenInfo] = useState(false);
+
   const { writeContractAsync } = useWriteContract();
-
-  // TODO: update this to base
+  const { data: walletClient } = useWalletClient();
+  // const { data: signer } = useSigner();
+  // Wagmi read client
   const publicClient = usePublicClient({ chainId: sepolia.id });
-  // const provider = publicClient ? new ethers.WebSocketProvider(publicClient.transport?.url) : null;
+  // or you could do: new ethers.providers.Web3Provider(...) to get a provider
 
+  // The read for whether the bonding curve is finalized
+  const { data: finalized } = useReadContract({
+    address: agent?.curve,
+    abi: CURVE_ABI,
+    functionName: "finalized",
+  });
+
+  // --------------------------------------------------------------------------------
+  // create: calls factory to create new agent + curve
+  // --------------------------------------------------------------------------------
   const create = async (agentName: string, symbol: string): Promise<CreateResult | ErrorResult> => {
     try {
       setLoading({ isLoading: true, message: "Creating agent..." });
 
-      // Call the factory contract to create a new token and curve
       const contractResult = await writeContractAsync({
         address: FACTORY_ADDRESS,
         abi: FACTORY_ABI,
@@ -51,39 +141,43 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         hash: contractResult,
       });
 
-      // Parse the logs to get the token and curve addresses
+      // Parse logs to get token & curve
       const factoryInterface = new ethers.Interface(FACTORY_ABI);
       for (const log of txReceipt?.logs ?? []) {
-        const parsedLog = factoryInterface.parseLog(log);
-        if (parsedLog?.name === "TokenAndCurveCreated") {
-          const { token, curve } = parsedLog.args;
-          console.log(parsedLog.args);
-
-          if (!token || !curve) {
-            return { message: "Error creating agent - no token or curve found" };
+        try {
+          const parsedLog = factoryInterface.parseLog(log);
+          if (parsedLog?.name === "TokenAndCurveCreated") {
+            const { token, curve } = parsedLog.args;
+            if (!token || !curve) {
+              return { message: "Error creating agent - no token or curve found" };
+            }
+            return { token, curve };
           }
-
-          // Return the token and curve addresses
-          return { token, curve };
+        } catch (error) {
+          console.error("Error parsing factory log:", error);
         }
       }
 
       return { message: "Error creating agent" };
     } catch (error) {
-      console.error(new Error(`Error creating agent: ${error}`));
+      console.error("Error creating agent:", error);
       return { message: `Error creating agent: ${error}` };
     } finally {
       setLoading({ isLoading: false, message: "" });
     }
   };
 
+  // --------------------------------------------------------------------------------
+  // buy: if finalized => use uniswap (ETH -> Agent), else use bonding curve
+  // --------------------------------------------------------------------------------
   const buy = async (amount: string) => {
     if (!agent) {
       console.error("No agent found");
       return;
     }
-
+    // Otherwise, do your existing bonding curve buy
     try {
+      // check supply
       const supply = (await readContract(config, {
         abi: CURVE_ABI,
         address: agent.curve,
@@ -91,8 +185,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         args: [],
       })) as bigint;
 
-      // No need to format supply for contract calls, supply is already a bigint
-      // Just use supply and amountWei directly
+      // get buy price
       const price = (await readContract(config, {
         abi: CURVE_ABI,
         address: agent.curve,
@@ -100,9 +193,9 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         args: [supply, amount],
       })) as bigint;
 
-      console.log(price);
+      console.log("Bonding curve buy price:", price.toString());
 
-      // price and amountWei are now in smallest units, no conversion needed
+      // Send buy
       const contractResult = await writeContractAsync({
         address: agent.curve,
         abi: CURVE_ABI,
@@ -110,6 +203,11 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         args: [amount],
         value: price, // already a bigint
       });
+
+      if (!hasAddedTokenInfo) {
+        await addTokenToWallet(agent);
+        setHasAddedTokenInfo(true);
+      }
 
       setLoading({ isLoading: true, message: "Finalizing Buy" });
 
@@ -119,27 +217,29 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
 
       setLoading({ isLoading: false, message: "" });
 
-      console.log("Transaction hash:", contractResult);
-      console.log("Tx receipt awaited in another step if needed.");
+      console.log("Bonding curve buy transaction hash:", contractResult);
     } catch (error) {
-      // TODO: handle sentry here
       if (error instanceof Error && error.message.includes("User rejected the request.")) {
-        return
+        return;
       } else {
         console.error(error);
       }
     }
   };
 
+  // --------------------------------------------------------------------------------
+  // sell: if finalized => use uniswap (Agent -> ETH), else use bonding curve
+  // --------------------------------------------------------------------------------
   const sell = async (amount: string) => {
-    try {
-      if (!agent) {
-        console.error("No agent found");
-        return;
-      }
+    if (!agent) {
+      console.error("No agent found");
+      return;
+    }
 
+    // Otherwise, do your existing bonding curve sell
+    try {
       if (!approved) {
-        await approve();
+        await approve(); // TODO: add to local storage
       }
 
       const sellHash = await writeContractAsync({
@@ -158,10 +258,12 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
       setLoading({ isLoading: false, message: "" });
     } catch (error) {
       console.error(error);
-      // TODO: show error to the user
     }
   };
 
+  // --------------------------------------------------------------------------------
+  // Approve bonding curve contract for your token (non-finalized path)
+  // --------------------------------------------------------------------------------
   const approve = async () => {
     if (!agent) {
       console.error("No agent found");
@@ -174,7 +276,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
       const maxAllowance = ethers.MaxUint256;
 
       const approveHash = await writeContractAsync({
-        address: agent.address,
+        address: agent.agentId, // agent token
         abi: ERC20_ABI,
         functionName: "approve",
         args: [agent.curve, maxAllowance],
@@ -194,6 +296,136 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
     }
   };
 
+  // --------------------------------------------------------------------------------
+  // isTokenInWallet & addTokenToWallet remain the same
+  // --------------------------------------------------------------------------------
+  const isTokenInWallet = async (tokenAddress: string) => {
+    try {
+      if (!walletClient || !publicClient) return false;
+
+      const balance = (await readContract(config, {
+        address: tokenAddress as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [walletClient.account.address],
+      })) as bigint;
+
+      return balance > 0n;
+    } catch (error) {
+      console.error("Failed to check token balance:", error);
+      return false;
+    }
+  };
+
+  const addTokenToWallet = async (agent: { agentId: string; ticker: string; image: string }) => {
+    try {
+      if (!walletClient) return;
+
+      // Check if user already has token balance
+      const hasToken = await isTokenInWallet(agent.agentId);
+      if (hasToken) {
+        setHasAddedTokenInfo(true);
+        return true;
+      }
+
+      // If not, prompt to add token
+      const tokenExists = await walletClient.request({
+        method: "wallet_watchAsset",
+        params: {
+          type: "ERC20",
+          options: {
+            address: agent.agentId,
+            symbol: agent.ticker,
+            decimals: 18,
+            image: agent.image,
+          },
+        },
+      });
+
+      if (tokenExists) {
+        setHasAddedTokenInfo(true);
+      }
+
+      return tokenExists;
+    } catch (error) {
+      console.error("Failed to add token to wallet:", error);
+      return false;
+    }
+  };
+
+  // ----------------------------------------------------------------
+  // Fetch Price & Market Cap
+  // ----------------------------------------------------------------
+  /**
+   * Returns { priceInETH, marketCapInETH } if successful,
+   * or undefined if something fails.
+   */
+  const fetchPriceAndMarketCap = async () => {
+    try {
+      if (!agent) return;
+
+      // 1) Get circulating or total supply
+      //    If your token uses a standard ERC20, you might call `totalSupply`.
+      //    Your curve might have `circulatingSupply()`. Adjust as needed.
+      const supply = (await readContract(config, {
+        abi: CURVE_ABI,
+        address: agent.curve,
+        functionName: "circulatingSupply",
+        args: [],
+      })) as bigint;
+
+      // Convert supply to a big decimal number for easier math
+      const supplyNum = Number(ethers.formatUnits(supply, 18));
+
+      let priceInETH = 0;
+      if (!finalized) {
+        // If not finalized, use bonding curve price for 1 token
+        // e.g. getBuyPrice for supply -> supply+1
+        // to approximate the price of the "next token"
+        const oneToken = 1n;
+        const nextPrice = (await readContract(config, {
+          abi: CURVE_ABI,
+          address: agent.curve,
+          functionName: "getBuyPrice",
+          args: [supply, oneToken],
+        })) as bigint;
+
+        // This is the cost in Wei to buy exactly 1 token
+        const nextPriceETH = Number(ethers.formatEther(nextPrice));
+        priceInETH = nextPriceETH;
+      } else {
+        // If finalized, use Uniswap
+        if (!walletClient) {
+          throw new Error("No wallet signer available to read from Uniswap");
+        }
+        const ethersProvider = new ethers.BrowserProvider(walletClient.transport);
+
+        const agentToken = getAgentTokenObject(agent.agentId, agent.ticker);
+        const wethToken = getWethTokenObject();
+
+        // We want the price of 1 AGENT in ETH, so let's do a route: Agent->WETH
+        const pool = await getPoolData(agentToken, wethToken, POOL_FEE, ethersProvider);
+        const route = new Route([pool], agentToken, wethToken);
+
+        // Quote how many WETH we get for EXACT_INPUT=1 token
+        const oneTokenInWei = parseAmount("1", 18);
+        const quotedOut = await getQuote(route, oneTokenInWei.toString(), ethersProvider);
+
+        // `quotedOut` is how many WETH (wei) for 1 agent token
+        priceInETH = Number(ethers.formatEther(quotedOut));
+      }
+
+      const marketCapInETH = priceInETH * supplyNum;
+      return {
+        priceInETH,
+        marketCapInETH,
+      };
+    } catch (error) {
+      console.error("Failed to fetch price & market cap:", error);
+      return;
+    }
+  };
+
   return {
     create,
     buy,
@@ -201,7 +433,8 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
     approve,
     loading,
     approved,
+    addTokenToWallet,
+    fetchPriceAndMarketCap,
+    finalized,
   };
 }
-
-const wait = async (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

@@ -2,10 +2,10 @@ import axios from "axios";
 import { Agent } from "@/lib/types";
 
 export default async function getAgentDetails(
-  address: string
+  agentId: string
 ): Promise<{ success: boolean; data?: Agent; message?: string }> {
   try {
-    const response = await axios.get(`${process.env.SERVER_URL}/agent?agentId=${address}`);
+    const response = await axios.get(`${process.env.SERVER_URL}/agent?agentId=${agentId}`);
     const result = response.data;
     if (!result.success) {
       return { success: false, message: "Agent not found" };
