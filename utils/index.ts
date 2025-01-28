@@ -1,3 +1,3 @@
-import { getPoolData } from "./getPoolData";
+import { getPoolData, getPoolAddress } from "./getPoolData";
 
-export { getPoolData };
+export { getPoolData, getPoolAddress };

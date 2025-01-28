@@ -77,6 +77,15 @@ function sortTokensByAddress(tokenA: Token, tokenB: Token): [Token, Token] {
   }
 }
 
+function sortAddressesByAddress(addressA: string, addressB: string): [string, string] {
+  // Compare addresses as lowercase to avoid case-sensitivity issues
+  if (addressA.toLowerCase() < addressB.toLowerCase()) {
+    return [addressA, addressB];
+  } else {
+    return [addressB, addressA];
+  }
+}
+
 /**
  * Fetch on-chain data for a Uniswap V3 pool given two tokens + fee tier.
  * 1) Sort the tokens by address
@@ -131,4 +140,13 @@ export async function getPoolData(
   );
 
   return pool;
+}
+
+export async function getPoolAddress(agentAddress: string) {
+  const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+  const factoryContract = new ethers.Contract(UNISWAP_V3_FACTORY_ADDRESS, IUniswapV3FactoryAbi, provider);
+  const wethAddress = "0xfff9976782d46cc05630d1f6ebab18b2324d6b14"; // TODO: use import from process.env
+  const [token0, token1] = sortAddressesByAddress(agentAddress, wethAddress);
+  const poolAddress: string = await factoryContract.getPool(token0, token1, 100);
+  return poolAddress;
 }

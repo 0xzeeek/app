@@ -1,36 +1,25 @@
-// components/CurveChart.tsx
 import React, { useEffect, useRef } from "react";
 import {
   createChart,
   IChartApi,
   ISeriesApi,
-  //   BarData, // or CandlestickData, etc.
   Time,
 } from "lightweight-charts";
 import { useDataFeed } from "@/hooks/useDataFeed";
-
-// type CandlestickData = {
-//   time: number; // Unix timestamp in seconds
-//   open: number;
-//   high: number;
-//   low: number;
-//   close: number;
-// };
+import { Agent } from "@/lib/types";
 
 interface CurveChartProps {
-  address: `0x${string}`;
+  agent: Agent;
 }
 
-export default function CurveChart({ address }: CurveChartProps) {
+export default function CurveChart({ agent }: CurveChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-
-  // Pull candlestick data (ohlcData) and other state from the useDataFeed hook
-  const { ohlcData, trades, loading, error } = useDataFeed(address);
+  const { ohlcData, trades, loading, error } = useDataFeed(agent.curve, agent.agentId);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // 1. Create the chart instance
+    // 1. Create the chart instance with modified configuration
     const chart: IChartApi = createChart(chartContainerRef.current, {
       width: 600,
       height: 400,
@@ -39,50 +28,89 @@ export default function CurveChart({ address }: CurveChartProps) {
         textColor: "#333",
       },
       grid: {
-        vertLines: {
-          color: "#eee",
-        },
-        horzLines: {
-          color: "#eee",
-        },
+        vertLines: { color: "#eee" },
+        horzLines: { color: "#eee" },
       },
       timeScale: {
         borderVisible: false,
         timeVisible: true,
       },
       rightPriceScale: {
+        visible: true,
         borderVisible: false,
+        autoScale: true,
+        scaleMargins: {
+          top: 0.1,  // Reduced top margin
+          bottom: 0.1, // Reduced bottom margin
+        },
+        ticksVisible: true,
+        borderColor: "#eee",
+        mode: 0, // Normal mode (not logarithmic)
+      },
+      localization: {
+        priceFormatter: (price: number) => {
+          // For very small numbers, use scientific notation
+          if (price < 0.000001) {
+            return price.toFixed(15);
+          }
+          // For small but not tiny numbers, use more decimal places
+          if (price < 0.01) {
+            return price.toFixed(8);
+          }
+          // For larger numbers, use fewer decimal places
+          return price.toFixed(4);
+        },
       },
     });
 
-    // 2. Add a candlestick series
-    const candlestickSeries: ISeriesApi<"Candlestick"> = chart.addCandlestickSeries();
+    // 2. Add a candlestick series with specific options
+    const candlestickSeries: ISeriesApi<"Candlestick"> = chart.addCandlestickSeries({
+      upColor: '#26a69a',
+      downColor: '#ef5350',
+      borderVisible: false,
+      wickUpColor: '#26a69a',
+      wickDownColor: '#ef5350',
+      priceFormat: {
+        type: 'price',
+        precision: 10,
+        minMove: 0.0000000001,
+      },
+    });
 
-    // 3. Convert ohlcData to the format lightweight-charts expects:
-    candlestickSeries.setData(
-      ohlcData.map((candle) => ({
-        time: candle.time as Time,  // Cast to Time type
-        open: candle.open,
-        high: candle.high,
-        low: candle.low,
-        close: candle.close,
-      }))
-    );
+    // 3. Process and set the data
+    const finalChartData = ohlcData.map((candle) => ({
+      time: candle.time as Time,
+      open: candle.open,
+      high: candle.high,
+      low: candle.low,
+      close: candle.close,
+    }));
 
-    // 4. On unmount or curveAddress change, clean up the chart
+    console.log("Setting chart data:", finalChartData);
+    candlestickSeries.setData(finalChartData);
+
+    // 4. Additional configurations for better visibility
+    chart.timeScale().fitContent();
+
+    // 5. Optional: Add price line for better reference
+    // candlestickSeries.createPriceLine({
+    //   price: finalChartData[finalChartData.length - 1]?.close || 0,
+    //   color: '#2196F3',
+    //   lineWidth: 1,
+    //   lineStyle: 2, // Dashed
+    //   axisLabelVisible: true,
+    // });
+
     return () => {
       chart.remove();
     };
   }, [ohlcData, trades]);
 
-  // Optional: Use trades for a separate line series or to display raw trade data in the UI.
-  // Example: console.log("Latest trades", trades);
-
-  if (loading) return <div>Loading chart data…</div>;
-  if (error) return <div>Error loading data: {error}</div>;
+  if (loading) return <div className="p-4">Loading chart data…</div>;
+  if (error) return <div className="p-4 text-red-500">Error loading data: {error}</div>;
 
   return (
-    <div>
+    <div className="border rounded-lg p-4">
       <div ref={chartContainerRef} />
     </div>
   );

@@ -94,7 +94,7 @@ export default function AgentDetails({ agent }: AgentDetailsProps) {
       
       <div className={styles.mainContent}>
         <div className={styles.chartSection}>
-          <CurveChart address={agent.curve} />
+          <CurveChart agent={agent} />
         </div>
         
         <div className={styles.tradingForm}>
