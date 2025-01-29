@@ -5,7 +5,7 @@ import styles from "./page.module.css";
 import { Agent } from "@/lib/types";
 
 interface AgentPageProps {
-  params: { agentId: string };
+  params: Promise<{ agentId: string }>;
 }
 
 export default async function AgentPage({ params }: AgentPageProps) {
@@ -39,7 +39,7 @@ export default async function AgentPage({ params }: AgentPageProps) {
           <Chat agentAddress={agent!.address} />
         </div>
       </div> */}
-          <AgentDetails agent={agent} />
+          <AgentDetails key={agent.agentId} agent={agent} />
         </div>
         <div className={styles.details}>
           <p>

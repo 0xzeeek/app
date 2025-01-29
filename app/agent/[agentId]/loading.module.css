@@ -1,0 +1,35 @@
+.container {
+  width: 100%;
+  padding: 20px;
+}
+
+.loadingContent {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.skeleton {
+  padding: 20px;
+  background: #1a1a1a;
+  border-radius: 8px;
+}
+
+.skeletonRow {
+  height: 20px;
+  background: #2a2a2a;
+  margin: 10px 0;
+  border-radius: 4px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0.3;
+  }
+} 

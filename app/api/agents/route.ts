@@ -5,10 +5,7 @@ import FACTORY_ABI from "@/lib/factoryAbi.json";
 // import ERC20_ABI from "@/lib/erc20Abi.json";
 import { getAgentDetails } from "@/functions";
 
-// TODO: update to env variable
-// const FACTORY_ADDRESS = (process.env.NEXT_PUBLIC_FACTORY_ADDRESS || "0x") as `0x${string}`;
-
-const FACTORY_ADDRESS = "0xc72e0cF6E650dAb2bd1f312C59F459A31046Fdc2";
+const FACTORY_ADDRESS = (process.env.NEXT_PUBLIC_FACTORY_ADDRESS || "0x") as `0x${string}`;
 
 export async function GET() {
   try {

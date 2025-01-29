@@ -22,7 +22,7 @@ export default function RootLayout({
       <WalletProvider>
         <Header />
         <main style={{ minHeight: '80vh' }}>
-          {children}
+            {children}
         </main>
         <Footer />
         </WalletProvider>

@@ -1,6 +1,6 @@
 // useEthereum.ts
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePublicClient, useWriteContract, useWalletClient, useReadContract } from "wagmi";
 import { readContract } from "@wagmi/core";
 import { ethers } from "ethers";
@@ -20,6 +20,7 @@ import { getPoolData } from "@/utils";
 
 import { TradeType, CurrencyAmount, Token, BigintIsh } from "@uniswap/sdk-core";
 import { Route, SwapQuoter } from "@uniswap/v3-sdk";
+import axios from "axios";
 /**
  * The QuoterV2 contract address on Sepolia for Uniswap V3 (verify as well).
  * Often 0x61fFE014bA17930e677c9e4cA9A5eF521eD62644 for mainnet,
@@ -100,6 +101,26 @@ type LoadingMessage = {
   message: string;
 };
 
+/**
+ * Fetch current ETH price in USD from our API
+ */
+async function getEthPriceUSD(): Promise<number> {
+  try {
+    const response = await axios.get("/api/price");
+    const result = response.data;
+
+    if (!result.success) {
+      throw new Error("Failed to fetch ETH price");
+    }
+
+    const data = result.data;
+    return data.price;
+  } catch (error) {
+    console.error("Failed to fetch ETH price:", error);
+    return 0;
+  }
+}
+
 export function useEthereum({ agent }: UseEthereumProps = {}) {
   const [loading, setLoading] = useState<LoadingMessage>({
     isLoading: false,
@@ -122,13 +143,19 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
     functionName: "finalized",
   });
 
+  useEffect(() => {
+    // read approved from local storage
+    const approved = localStorage.getItem("approved");
+    if (approved === "true") {
+      setApproved(true);
+    }
+  }, []);
+
   // --------------------------------------------------------------------------------
   // create: calls factory to create new agent + curve
   // --------------------------------------------------------------------------------
   const create = async (agentName: string, symbol: string): Promise<CreateResult | ErrorResult> => {
     try {
-      setLoading({ isLoading: true, message: "Creating agent..." });
-
       const contractResult = await writeContractAsync({
         address: FACTORY_ADDRESS,
         abi: FACTORY_ABI,
@@ -162,8 +189,6 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
     } catch (error) {
       console.error("Error creating agent:", error);
       return { message: `Error creating agent: ${error}` };
-    } finally {
-      setLoading({ isLoading: false, message: "" });
     }
   };
 
@@ -288,6 +313,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
 
       if (approveReceipt) {
         setApproved(true);
+        localStorage.setItem("approved", "true");
       }
 
       setLoading({ isLoading: false, message: "" });
@@ -357,37 +383,35 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
   // Fetch Price & Market Cap
   // ----------------------------------------------------------------
   /**
-   * Returns { priceInETH, marketCapInETH } if successful,
+   * Returns { priceInUSD, marketCapInUSD } if successful,
    * or undefined if something fails.
    */
   const fetchPriceAndMarketCap = async () => {
     try {
       if (!agent) return;
 
-      // 1) Get circulating or total supply
-      //    If your token uses a standard ERC20, you might call `totalSupply`.
-      //    Your curve might have `circulatingSupply()`. Adjust as needed.
-      const supply = (await readContract(config, {
-        abi: CURVE_ABI,
-        address: agent.curve,
-        functionName: "circulatingSupply",
-        args: [],
-      })) as bigint;
-
-      // Convert supply to a big decimal number for easier math
-      const supplyNum = Number(ethers.formatUnits(supply, 18));
-
       let priceInETH = 0;
+      let curveExists = false;
+      const supply = 1_000_000_000;
+
       if (!finalized) {
-        // If not finalized, use bonding curve price for 1 token
-        // e.g. getBuyPrice for supply -> supply+1
-        // to approximate the price of the "next token"
+        const curveSupply = await readContract(config, {
+          abi: CURVE_ABI,
+          address: agent.curve,
+          functionName: "circulatingSupply",
+          args: [],
+        }) as bigint;
+
+        if (curveSupply > 0n) {
+          curveExists = true;
+        }
+
         const oneToken = 1n;
         const nextPrice = (await readContract(config, {
           abi: CURVE_ABI,
           address: agent.curve,
           functionName: "getBuyPrice",
-          args: [supply, oneToken],
+          args: [curveSupply, oneToken],
         })) as bigint;
 
         // This is the cost in Wei to buy exactly 1 token
@@ -410,15 +434,27 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         // Quote how many WETH we get for EXACT_INPUT=1 token
         const oneTokenInWei = parseAmount("1", 18);
         const quotedOut = await getQuote(route, oneTokenInWei.toString(), ethersProvider);
-
         // `quotedOut` is how many WETH (wei) for 1 agent token
         priceInETH = Number(ethers.formatEther(quotedOut));
       }
 
-      const marketCapInETH = priceInETH * supplyNum;
+      // Get ETH/USD price
+      const ethPriceUSD = await getEthPriceUSD();
+
+      // Calculate USD values
+      const priceInUSD = priceInETH * ethPriceUSD;
+      const marketCapInUSD = curveExists ? priceInUSD * supply : 0;
+
+      const formatPrice = (price: number) => {
+        if (price < 0.01) {
+          return price.toFixed(8);
+        }
+        return Number(price.toFixed(2)).toLocaleString();
+      };
+
       return {
-        priceInETH,
-        marketCapInETH,
+        price: formatPrice(priceInUSD),
+        marketCap: formatPrice(marketCapInUSD),
       };
     } catch (error) {
       console.error("Failed to fetch price & market cap:", error);

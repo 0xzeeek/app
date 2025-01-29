@@ -6,7 +6,8 @@ import Notification from "@/components/utils/Notification";
 import { useRouter } from "next/navigation";
 import { useEthereum } from "@/hooks/useEthereum";
 import { useAccount } from "wagmi";
-import { FaRobot, FaTwitter } from "react-icons/fa";
+import { FaRobot } from "react-icons/fa";
+import { RiTwitterXFill } from "react-icons/ri";
 import { HiCheck } from "react-icons/hi";
 
 import { CreateResult, ErrorResult } from "@/lib/types";
@@ -65,48 +66,48 @@ export default function CreatePage() {
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      
+
       // Create an image element to get dimensions
-      const imgElement = document.createElement('img');
+      const imgElement = document.createElement("img");
       const imageUrl = URL.createObjectURL(file);
-      
+
       imgElement.onload = async () => {
         // Calculate the square crop dimensions
         const size = Math.min(imgElement.width, imgElement.height);
         const x = (imgElement.width - size) / 2;
         const y = (imgElement.height - size) / 2;
-        
+
         // Create canvas for cropping
-        const canvas = document.createElement('canvas');
+        const canvas = document.createElement("canvas");
         canvas.width = size;
         canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        
+        const ctx = canvas.getContext("2d");
+
         if (!ctx) {
-          console.error('Could not get canvas context');
+          console.error("Could not get canvas context");
           return;
         }
-        
+
         // Draw cropped image
         ctx.drawImage(imgElement, x, y, size, size, 0, 0, size, size);
-        
+
         // Convert to file
         canvas.toBlob((blob) => {
           if (!blob) {
-            console.error('Could not create blob');
+            console.error("Could not create blob");
             return;
           }
-          
-          const croppedFile = new File([blob], 'cropped.jpg', { type: 'image/jpeg' });
+
+          const croppedFile = new File([blob], "cropped.jpg", { type: "image/jpeg" });
           setImage(croppedFile);
           setImagePreview(URL.createObjectURL(croppedFile));
           setAgentDetails((prev) => ({
             ...prev,
             image: croppedFile,
           }));
-        }, 'image/jpeg');
+        }, "image/jpeg");
       };
-      
+
       imgElement.src = imageUrl;
     }
   };
@@ -211,7 +212,8 @@ export default function CreatePage() {
       }
     } else if (step === 2) {
       // Verify Twitter account before proceeding
-      const isTwitterValid = await checkTwitterAccount();
+      // const isTwitterValid = await checkTwitterAccount();
+      const isTwitterValid = true;
       if (isTwitterValid) {
         setStep(3);
       } else {
@@ -239,8 +241,8 @@ export default function CreatePage() {
           </div>
           <div className={`${styles.stepConnector} ${step >= 2 ? styles.active : ""}`} />
           <div className={`${styles.step} ${step >= 2 ? styles.active : ""}`}>
-            <div className={styles.stepIcon}>{step > 2 ? <HiCheck /> : <FaTwitter />}</div>
-            <span>Connect Twitter</span>
+            <div className={styles.stepIcon}>{step > 2 ? <HiCheck /> : <RiTwitterXFill />}</div>
+            <span>Connect 𝕏</span>
           </div>
           <div className={`${styles.stepConnector} ${step === 3 ? styles.active : ""}`} />
           <div className={`${styles.step} ${step === 3 ? styles.active : ""}`}>
@@ -317,9 +319,9 @@ export default function CreatePage() {
 
           {step === 2 && (
             <div className={styles.stepContent}>
-              <h2>Connect Twitter</h2>
+              <h2>Connect 𝕏</h2>
               <div className={styles.inputGroup}>
-                <label htmlFor="username">X Username</label>
+                <label htmlFor="username">𝕏 Username</label>
                 <input
                   type="text"
                   id="username"
@@ -330,7 +332,7 @@ export default function CreatePage() {
                 />
               </div>
               <div className={styles.inputGroup}>
-                <label htmlFor="email">X Email</label>
+                <label htmlFor="email">𝕏 Email</label>
                 <input
                   type="text"
                   id="email"
@@ -341,7 +343,7 @@ export default function CreatePage() {
                 />
               </div>
               <div className={styles.inputGroup}>
-                <label htmlFor="password">X Password</label>
+                <label htmlFor="password">𝕏 Password</label>
                 <input
                   type="password"
                   id="password"
@@ -351,6 +353,7 @@ export default function CreatePage() {
                   placeholder="Enter your password"
                 />
               </div>
+              <h5>Make sure to set your 𝕏 account as automated in account settings</h5>
               <div className={styles.buttonGroup}>
                 <button className={styles.backButton} onClick={() => setStep(1)}>
                   Back
@@ -370,22 +373,43 @@ export default function CreatePage() {
             <div className={styles.stepContent}>
               <h2>Create Your Agent</h2>
               <div className={styles.summary}>
-                <h3>Summary</h3>
-                <p>
-                  <strong>Name:</strong> {agentDetails.name}
-                </p>
-                <p>
-                  <strong>Ticker:</strong> {agentDetails.ticker}
-                </p>
-                <p>
-                  <strong>Background:</strong> {agentDetails.background}
-                </p>
-                <p>
-                  <strong>Twitter:</strong> @{agentDetails.username}
-                </p>
+                <div className={styles.summaryContent}>
+                  <div className={styles.summaryHeader}>
+                    <Image
+                      src={imagePreview}
+                      width={120}
+                      height={120}
+                      alt={`${agentDetails.name} preview`}
+                      className={styles.summaryImage}
+                    />
+                    <div className={styles.summaryDetails}>
+                      <p>
+                        <strong>Name:</strong> {agentDetails.name}
+                      </p>
+                      <p>
+                        <strong>Ticker:</strong> ${agentDetails.ticker}
+                      </p>
+                      <p>
+                        <strong>𝕏:</strong> @{agentDetails.username}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              <div className={styles.infoBox}>
+                <h4>What happens next?</h4>
+                <ul>
+                  <li>${agentDetails.ticker} will be deployed on base</li>
+                  <li>{agentDetails.name} will start posting to 𝕏 within the hour</li>
+                  <li>You can&apos;t update {agentDetails.name}&apos;s details after creation</li>
+                  <li>${agentDetails.ticker} must bond within 7 days for {agentDetails.name} to stay alive</li>
+                  <li>Initial deployment may take a few minutes</li>
+                </ul>
+              </div>
+
               <div className={styles.buttonGroup}>
-                <button className={styles.backButton} onClick={() => setStep(2)}>
+                <button className={styles.backButton} onClick={() => setStep(2)} disabled={loading}>
                   Back
                 </button>
                 <button className={styles.createButton} onClick={handleSubmit} disabled={loading}>

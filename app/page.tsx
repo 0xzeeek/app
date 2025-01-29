@@ -13,15 +13,16 @@ export default async function HomePage() {
   }
 
   const agents: Agent[] = result.data;
+  agents.reverse();
 
   return (
     <div className={styles.main}>
-      <h1>Recent Agents</h1>
-      <div className={styles.agentsContainer}>
-        {agents.map((agent) => (
-          <AgentCard key={agent.address} agent={agent} />
-        ))}
-      </div>
+        <h1>Recent Agents</h1>
+        <div className={styles.agentsContainer}>
+          {agents.map((agent) => (
+            <AgentCard key={agent.agentId} agent={agent} />
+          ))}
+        </div>
     </div>
   );
 }

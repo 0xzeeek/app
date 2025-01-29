@@ -64,13 +64,12 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
 
         const amount = Number(amountBig);
         const totalCostEth = Number(ethers.formatEther(costBig));
-
         buyTrades.push({
           time: block?.timestamp ?? 0,
           eventType: "buy",
           account: buyer,
           amount: amount,
-          price: totalCostEth / (amount || 1),
+          price: totalCostEth / amount,
         });
       }
 
@@ -90,11 +89,13 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
           eventType: "sell",
           account: seller,
           amount,
-          price: totalRefundEth / (amount || 1),
+          price: totalRefundEth / amount,
         });
       }
 
-      return [...buyTrades, ...sellTrades];
+      console.log("buyTrades", buyTrades);
+
+      return [...sellTrades, ...buyTrades];
     };
 
     // ---------------------------------------------------
@@ -185,8 +186,8 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
 
         // Uniswap V3 trades (only if pool address is found)
         const uniTrades = await fetchUniswapV3Trades();
-        console.log("bcTrades", bcTrades);
-        console.log("uniTrades", uniTrades);
+        // console.log("bcTrades", bcTrades);
+        // console.log("uniTrades", uniTrades);
 
         // Merge & sort
         const allTrades = [...bcTrades, ...uniTrades].sort((a, b) => a.time - b.time);
