@@ -16,7 +16,7 @@ export async function GET() {
     const totalAgents = Number(totalAgentsBigInt); // Convert from bigint to number
 
     // TODO: decide how to paginate the agents
-    const count = Math.min(totalAgents, 10);
+    const count = Math.min(totalAgents, 20);
     console.log(`Total agents: ${totalAgents}`);
 
     const agents: Agent[] = [];

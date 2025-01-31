@@ -6,6 +6,7 @@ import { useEthereum } from "@/hooks/useEthereum";
 import { Agent } from "@/lib/types";
 
 import styles from "./TradingForm.module.css";
+import { useAccount } from "wagmi";
 
 interface TradingFormProps {
   agent: Agent;
@@ -18,7 +19,8 @@ export default function TradingForm({ agent }: TradingFormProps) {
   const [isBuying, setIsBuying] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showError, setShowError] = useState("");
-  const { loading: notificationLoading, buy, sell, approve, approved, finalized } = useEthereum({ agent });
+  const { loading: notificationLoading, buy, sell, finalized } = useEthereum({ agent });
+  const { isConnected } = useAccount();
 
   if (finalized) {
     const uniswapUrl = `${UNISWAP_SWAP_URL}?outputCurrency=${agent.agentId}&chain=sepolia`;
@@ -46,18 +48,21 @@ export default function TradingForm({ agent }: TradingFormProps) {
         await buy(amount);
         setAmount("");
       } else {
-        if (!approved) {
-          await approve();
-        } else {
-          await sell(amount);
-          setAmount("");
-        }
+        await sell(amount);
+        setAmount("");
       }
     } catch (error) {
       setShowError("Transaction failed: " + error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getButtonText = () => {
+    if (!isConnected) return "Connect Wallet";
+    if (isLoading) return "Processing...";
+    if (isBuying) return "Buy Tokens";
+    return "Sell Tokens";
   };
 
   return (
@@ -99,8 +104,12 @@ export default function TradingForm({ agent }: TradingFormProps) {
           />
         </div>
 
-        <button type="submit" className={styles.submitButton} disabled={isLoading}>
-          {isLoading ? "Processing..." : isBuying ? "Buy Tokens" : approved ? "Sell Tokens" : "Approve Sell"}
+        <button 
+          type="submit" 
+          className={styles.submitButton} 
+          disabled={isLoading || !isConnected}
+        >
+          {getButtonText()}
         </button>
       </form>
     </>

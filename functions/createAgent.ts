@@ -52,24 +52,27 @@ export default async function createAgent({
     }
 
     // TODO: turn on start agent
-    // const startResponse = await axios.post(`${process.env.SERVER_URL}/start`, {
-    //   agentId: token,
-    //   characterFile,
-    //   twitterCredentials: {
-    //     username,
-    //     email,
-    //     password: encryptedPassword,
-    //   },
-    // });
+    const startResponse = await axios.post(`${process.env.SERVER_URL}/start`, {
+      agentId: token,
+      characterFile,
+      twitterCredentials: {
+        username,
+        email,
+        password: encryptedPassword,
+      },
+    });
 
-    // if (!startResponse.data?.success) {
-    //   console.error(new Error(startResponse.data.error));
-    //   return { success: false, message: "Failed to start agent" };
-    // }
+    if (!startResponse.data?.success) {
+      console.error(new Error(startResponse.data.error));
+      return { success: false, message: "Failed to start agent" };
+    }
 
     return { success: true };
   } catch (error) {
-    console.error(new Error("An unknown error occurred:", { cause: error }));
-    return { success: false, message: "An unknown error occurred in createAgent" };
+    console.error("Error creating agent", { cause: error });
+    if (error instanceof Error) {
+      return { success: false, message: error.message };
+    }
+    return { success: false, message: "An unknown error occurred" };
   }
 }

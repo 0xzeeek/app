@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import CurveChart from "@/components/chart/CurveChart";
-import TradingForm from "@/components/agent/TradingForm";
+import TradingForm from "@/components/trade/TradingForm";
 import AgentChat from "@/components/agent/AgentChat";
 
 import { Agent } from "@/lib/types";
@@ -22,7 +22,7 @@ export default function AgentDetails({ agent }: AgentDetailsProps) {
 
   useEffect(() => {
     const fetchData = async () => {
-      const result = await fetchPriceAndMarketCap();
+      const result = await fetchPriceAndMarketCap(agent);
       if (result) {
         const { price, marketCap } = result;
         setPrice(price);
@@ -30,7 +30,9 @@ export default function AgentDetails({ agent }: AgentDetailsProps) {
       }
     };
 
-    fetchData();
+    if (agent) {
+      fetchData();
+    }
   }, [agent, fetchPriceAndMarketCap]);
 
   return (
@@ -84,7 +86,7 @@ export default function AgentDetails({ agent }: AgentDetailsProps) {
 
       <div className={styles.mainContent}>
         <div className={styles.chartSection}>
-          <CurveChart agent={agent} />
+          <CurveChart tokenAddress={agent.agentId} curveAddress={agent.curve} />
         </div>
 
         <div className={styles.tradingForm}>

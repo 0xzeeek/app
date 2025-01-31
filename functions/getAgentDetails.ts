@@ -2,7 +2,8 @@ import axios from "axios";
 import { Agent } from "@/lib/types";
 
 export default async function getAgentDetails(
-  agentId: string
+  agentId: string,
+  showRemoved: boolean = false
 ): Promise<{ success: boolean; data?: Agent; message?: string }> {
   try {
     const response = await axios.get(`${process.env.SERVER_URL}/agent?agentId=${agentId}`);
@@ -11,6 +12,10 @@ export default async function getAgentDetails(
       return { success: false, message: "Agent not found" };
     }
     const agent = result.data;
+
+    if (agent.remove === "true" && !showRemoved) {
+      return { success: false, message: "Agent removed" };
+    }
 
     return { success: true, data: agent };
   } catch (error) {

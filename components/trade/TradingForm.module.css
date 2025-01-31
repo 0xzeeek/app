@@ -63,6 +63,7 @@
 }
 
 .finalizedMessage {
+  width: 250px;
   text-align: center;
   padding: 2rem;
   border: 1px solid #eaeaea;

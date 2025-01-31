@@ -6,6 +6,8 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { Resource } from "sst";
 
 export default async function createCharacterFile(name: string, description: string) {
+
+    try {
   const s3Client = new S3Client({});
 
   const config = {
@@ -65,17 +67,22 @@ export default async function createCharacterFile(name: string, description: str
   `;
 
   const body = {
-    model: "anthropic/claude-3.5-sonnet:beta",
+    model: "anthropic/claude-3.5-sonnet",
     response_format: { type: "json_object" },
     messages: [
       {
-        role: "assistant",
+        role: "user",
         content: prompt,
       },
     ],
   };
 
   const response = await axios.post(`https://openrouter.ai/api/v1/chat/completions`, body, config);
+
+  if (!response.data.choices[0].message.content) {
+    // TODO: add important sentry message heree
+    throw new Error("Invalid character file response");
+  }
 
   const characterFileResponse = JSON.parse(response.data.choices[0].message.content);
 
@@ -107,7 +114,11 @@ export default async function createCharacterFile(name: string, description: str
     })
   );
 
-  const fileUrl = `https://${Resource.CharacterFile.name}.s3.amazonaws.com/${key}`;
+    const fileUrl = `https://${Resource.CharacterFile.name}.s3.amazonaws.com/${key}`;
 
-  return fileUrl;
+    return fileUrl;
+  } catch (error) {
+    console.error("Error creating character file", { cause: error });
+    throw new Error("Error creating character");
+  }
 }

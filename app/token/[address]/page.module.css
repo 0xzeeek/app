@@ -1,0 +1,126 @@
+.main {
+  width: calc(100% - 220px);
+  margin-left: 220px;
+}
+
+.container {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.warningBanner {
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  color: #856404;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.tradingLayout {
+  display: flex;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.chartSection {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* width: 100%; */
+  overflow-x: hidden;
+  display: flex;
+  justify-content: flex-end;
+}
+.tradeSection {
+  flex: 1;
+  min-width: 0; /* Prevents flex items from overflowing */
+  background: var(--background-secondary);
+  border-radius: 12px;
+  padding: 1.5rem;
+
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.chartContainer,
+.tradeContainer {
+  background: var(--background-secondary);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.details {
+  padding-top: 1rem;
+}
+
+.metrics {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.metricItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.metricLabel {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.metricValue {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .main {
+    width: 100%;
+    margin-left: 0;
+    margin-bottom: 12vh;
+  }
+
+  .tradingLayout {
+    flex-direction: column;
+  }
+
+  .chartSection,
+  .tradeSection {
+    width: 100%;
+  }
+
+  .chartSection {
+    margin-bottom: 1rem;
+  }
+
+  .metrics {
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 1rem;
+  }
+}

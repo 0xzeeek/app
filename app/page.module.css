@@ -1,20 +1,37 @@
 .main {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  max-width: 90%;
+  padding: 2rem 0;
+  width: calc(100% - 220px);
+  margin-left: 220px;
 }
 
-.main h1 {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 16px;
-  font-family: var(--creato);
+.contentContainer {
+  /* max-width: 1400px; */
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.headerSection {
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
 }
 
 .agentsContainer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .main {
+    width: 100%;
+    margin-left: 0;
+    margin-bottom: 12vh;
+  }
 }

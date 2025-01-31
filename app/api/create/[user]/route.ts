@@ -33,12 +33,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ use
     const { user } = await params;
     const { name, ticker, token, curve, image, background, username, email, password } = await request.json();
 
-    await createAgent({ name, ticker, user, token, curve, image, background, username, email, password });
+    const result = await createAgent({ name, ticker, user, token, curve, image, background, username, email, password });
+
+    if (!result.success) {
+      return new Response(JSON.stringify({ success: false, message: result.message }), { status: 200 });
+    }
 
     return new Response(JSON.stringify({ success: true, data: {} }), { status: 200 });
   } catch (error) {
-    console.error(error);
-    console.error(new Error(`Unable to generate response: ${error}`));
-    return new Response(JSON.stringify({ success: false, message: "Unable to generate response" }), { status: 500 });
+    console.error(new Error(`Unable to create agent`, { cause: error }));
+    if (error instanceof Error) {
+      return new Response(JSON.stringify({ success: false, message: error.message }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ success: false, message: "An unknown error occurred" }), { status: 200 });
   }
 }

@@ -1,6 +1,6 @@
 // useEthereum.ts
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePublicClient, useWriteContract, useWalletClient, useReadContract } from "wagmi";
 import { readContract } from "@wagmi/core";
 import { ethers } from "ethers";
@@ -126,7 +126,6 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
     isLoading: false,
     message: "",
   });
-  const [approved, setApproved] = useState(false);
   const [hasAddedTokenInfo, setHasAddedTokenInfo] = useState(false);
 
   const { writeContractAsync } = useWriteContract();
@@ -142,14 +141,6 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
     abi: CURVE_ABI,
     functionName: "finalized",
   });
-
-  useEffect(() => {
-    // read approved from local storage
-    const approved = localStorage.getItem("approved");
-    if (approved === "true") {
-      setApproved(true);
-    }
-  }, []);
 
   // --------------------------------------------------------------------------------
   // create: calls factory to create new agent + curve
@@ -218,8 +209,6 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         args: [supply, amount],
       })) as bigint;
 
-      console.log("Bonding curve buy price:", price.toString());
-
       // Send buy
       const contractResult = await writeContractAsync({
         address: agent.curve,
@@ -261,10 +250,13 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
       return;
     }
 
-    // Otherwise, do your existing bonding curve sell
     try {
-      if (!approved) {
-        await approve(); // TODO: add to local storage
+      // Check if approved
+      const isApproved = await checkAllowance();
+      
+      // Approve if needed
+      if (!isApproved) {
+        await approve();
       }
 
       const sellHash = await writeContractAsync({
@@ -312,8 +304,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
       });
 
       if (approveReceipt) {
-        setApproved(true);
-        localStorage.setItem("approved", "true");
+        setHasAddedTokenInfo(true);
       }
 
       setLoading({ isLoading: false, message: "" });
@@ -386,7 +377,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
    * Returns { priceInUSD, marketCapInUSD } if successful,
    * or undefined if something fails.
    */
-  const fetchPriceAndMarketCap = async () => {
+  const fetchPriceAndMarketCap = async (agent?: Agent) => {
     try {
       if (!agent) return;
 
@@ -418,6 +409,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         const nextPriceETH = Number(ethers.formatEther(nextPrice));
         priceInETH = nextPriceETH;
       } else {
+        curveExists = true;
         // If finalized, use Uniswap
         if (!walletClient) {
           throw new Error("No wallet signer available to read from Uniswap");
@@ -462,13 +454,32 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
     }
   };
 
+  // Add new function to check allowance
+  const checkAllowance = async (): Promise<boolean> => {
+    if (!agent || !walletClient) return false;
+
+    try {
+      const allowance = await readContract(config, {
+        address: agent.agentId,
+        abi: ERC20_ABI,
+        functionName: 'allowance',
+        args: [walletClient.account.address, agent.curve],
+      }) as bigint;
+
+      return allowance > 0n;
+    } catch (error) {
+      console.error('Error checking allowance:', error);
+      return false;
+    }
+  };
+
   return {
     create,
     buy,
     sell,
     approve,
     loading,
-    approved,
+    checkAllowance,
     addTokenToWallet,
     fetchPriceAndMarketCap,
     finalized,

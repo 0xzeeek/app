@@ -1,37 +1,40 @@
+"use client";
+
 import React, { useEffect, useRef } from "react";
 import {
   createChart,
   IChartApi,
   ISeriesApi,
+  LineData,
   Time,
 } from "lightweight-charts";
 import { useDataFeed } from "@/hooks/useDataFeed";
-import { Agent } from "@/lib/types";
 import { useEthPrice } from "@/hooks/useEthPrice";
 
 interface CurveChartProps {
-  agent: Agent;
+  tokenAddress: string;
+  curveAddress: string;
 }
 
-export default function CurveChart({ agent }: CurveChartProps) {
+export default function CurveChart({ tokenAddress, curveAddress }: CurveChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const { ohlcData, trades, loading, error: dataError } = useDataFeed(agent.curve, agent.agentId);
+  const { ohlcData, trades, loading, error: dataError } = useDataFeed(curveAddress, tokenAddress);
   const { ethPrice, error: priceError } = useEthPrice();
 
   useEffect(() => {
     if (!chartContainerRef.current || !ethPrice) return;
 
-    // 1. Create the chart instance with modified configuration
+    // 1. Create the chart
     const chart: IChartApi = createChart(chartContainerRef.current, {
       width: 600,
       height: 400,
       layout: {
-        background: { color: '#1a1b1e' },  // Dark background
-        textColor: '#d1d5db',  // Light gray text
+        background: { color: "#1a1b1e" },
+        textColor: "#d1d5db",
       },
       grid: {
-        vertLines: { color: '#2d2d2d' },  // Darker grid lines
-        horzLines: { color: '#2d2d2d' },
+        vertLines: { color: "#2d2d2d" },
+        horzLines: { color: "#2d2d2d" },
       },
       timeScale: {
         borderVisible: false,
@@ -40,14 +43,10 @@ export default function CurveChart({ agent }: CurveChartProps) {
       rightPriceScale: {
         visible: true,
         borderVisible: false,
-        autoScale: true,
         scaleMargins: {
-          top: 0.1,  // Reduced top margin
-          bottom: 0.1, // Reduced bottom margin
+          top: 0.1,
+          bottom: 0.1,
         },
-        ticksVisible: true,
-        borderColor: '#2d2d2d',  // Darker border
-        mode: 0, // Normal mode (not logarithmic)
       },
       localization: {
         priceFormatter: (price: number) => {
@@ -62,46 +61,73 @@ export default function CurveChart({ agent }: CurveChartProps) {
       },
     });
 
-    // 2. Add a candlestick series with specific options
-    const candlestickSeries: ISeriesApi<"Candlestick"> = chart.addCandlestickSeries({
-      upColor: '#26a69a',      // Keeping green for up
-      downColor: '#ef5350',    // Keeping red for down
-      borderVisible: false,
-      wickUpColor: '#26a69a',  // Matching up color
-      wickDownColor: '#ef5350', // Matching down color
-      priceFormat: {
-        type: 'price',
-        precision: 10,
-        minMove: 0.0000000001,
-      },
-    });
+    // 2. Decide whether to show candles or a line based on data length
+    let series: ISeriesApi<"Candlestick"> | ISeriesApi<"Line">;
+    const CANDLE_THRESHOLD = 20;  // or whatever number you want
 
-    // Add this block to set initial range if there's no data
-    if (!ohlcData.length) {
-      const currentTime = Math.floor(Date.now() / 1000) as Time;
-      const oneDayAgo = (currentTime as number - (24 * 60 * 60)) as Time;
-      
-      candlestickSeries.setData([{
-        time: oneDayAgo,
-        open: 0,
-        high: 0,
-        low: 0,
-        close: 0,
-      }]);
-      
-    } else {
-      // Existing data processing code
-      const finalChartData = ohlcData.map((candle) => ({
+    console.log("ohlcData", ohlcData);
+
+    if (ohlcData.length < CANDLE_THRESHOLD) {
+      // ---- Use Line series ----
+      series = chart.addLineSeries({
+        color: "#26a69a",   // or your preferred line color
+        lineWidth: 2,
+      });
+
+      // Convert OHLC data to an array of { time, value } for the line
+      const lineData: LineData[] = ohlcData.map((candle) => ({
         time: candle.time as Time,
-        open: candle.open * ethPrice,
-        high: candle.high * ethPrice,
-        low: candle.low * ethPrice,
-        close: candle.close * ethPrice,
+        value: candle.close * ethPrice,
       }));
 
-      candlestickSeries.setData(finalChartData);
-      chart.timeScale().fitContent();
+      if (!lineData.length) {
+        // If absolutely no data, set a dummy data point for the chart
+        const now = Math.floor(Date.now() / 1000);
+        series.setData([
+          { time: now - 3600 as Time, value: 0 },
+          { time: now as Time, value: 0 },
+        ]);
+      } else {
+        series.setData(lineData);
+      }
+    } else {
+      // ---- Use Candlestick series ----
+      series = chart.addCandlestickSeries({
+        upColor: "#26a69a",
+        downColor: "#ef5350",
+        borderVisible: false,
+        wickUpColor: "#26a69a",
+        wickDownColor: "#ef5350",
+        priceFormat: {
+          type: "price",
+          precision: 10,
+          minMove: 0.0000000001,
+        },
+      });
+
+      // Convert OHLC data to candle format in dollar terms
+      const finalChartData = ohlcData.map((c) => ({
+        time: c.time as Time,
+        open: c.open * ethPrice,
+        high: c.high * ethPrice,
+        low: c.low * ethPrice,
+        close: c.close * ethPrice,
+      }));
+
+      if (!finalChartData.length) {
+        // If absolutely no data, set a dummy candle
+        const now = Math.floor(Date.now() / 1000);
+        series.setData([
+          { time: now - 3600 as Time, open: 0, high: 0, low: 0, close: 0 },
+          { time: now as Time, open: 0, high: 0, low: 0, close: 0 },
+        ]);
+      } else {
+        series.setData(finalChartData);
+      }
     }
+
+    // 3. Auto-scale after setting the data
+    chart.timeScale().fitContent();
 
     return () => {
       chart.remove();

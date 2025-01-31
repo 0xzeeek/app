@@ -1,6 +1,7 @@
 .container {
-  width: 100%;
-  padding: 20px;
+  padding: 1rem;
+  width: calc(100% - 220px);
+  margin-left: 220px;
 }
 
 .loadingContent {
@@ -33,3 +34,11 @@
     opacity: 0.3;
   }
 } 
+
+
+@media (max-width: 768px) {
+  .container {
+    width: 100%;
+    margin-left: 0;
+  }
+}

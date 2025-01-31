@@ -45,7 +45,7 @@ export default function CreatePage() {
     const result = await fetch("/api/verify", {
       method: "POST",
       body: JSON.stringify({
-        username: agentDetails.username,
+        username: agentDetails.username.replace('@', ''),
         password: agentDetails.password,
         email: agentDetails.email,
       }),
@@ -139,7 +139,7 @@ export default function CreatePage() {
     }
 
     // Create the agent via the Ethereum contract
-    setNotification("Deploying onchain.");
+    setNotification(`Deploying ${ticker} onchain.`);
     const createResult = await create(name, ticker);
 
     if ((createResult as ErrorResult).message) {
@@ -150,16 +150,27 @@ export default function CreatePage() {
     const { token, curve } = createResult as CreateResult;
 
     // Create the agent
-    setNotification("Starting the agent.");
+    setNotification(`Creating agent: ${name}`);
     const createResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/create/${userAddress}`, {
       method: "POST",
-      body: JSON.stringify({ name, ticker, token, curve, image: imageUrl, background, username, email, password }),
+      body: JSON.stringify({ 
+        name, 
+        ticker, 
+        token, 
+        curve, 
+        image: imageUrl, 
+        background, 
+        username: username.replace('@', ''), 
+        email, 
+        password 
+      }),
     });
 
     const { success, message } = await createResponse.json();
 
     if (!success) {
-      setShowError(message);
+      setShowError(`${message}. Please try again.`);
+      setLoading(false);
       return;
     }
 
@@ -186,6 +197,10 @@ export default function CreatePage() {
   };
 
   const validateStepOne = () => {
+    if (!userAddress) {
+      setShowError("Please connect your wallet to create an agent");
+      return false;
+    }
     if (!agentDetails.name.trim()) {
       setShowError("Please enter an agent name");
       return false;
@@ -212,8 +227,7 @@ export default function CreatePage() {
       }
     } else if (step === 2) {
       // Verify Twitter account before proceeding
-      // const isTwitterValid = await checkTwitterAccount();
-      const isTwitterValid = true;
+      const isTwitterValid = await checkTwitterAccount();
       if (isTwitterValid) {
         setStep(3);
       } else {
@@ -233,191 +247,195 @@ export default function CreatePage() {
       {/* Loading notifications */}
       {/* {loading.isLoading && <Notification message={loading.message} type="info" duration={8000} />} */}
 
-      <div className={styles.container}>
-        <div className={styles.stepsContainer}>
-          <div className={`${styles.step} ${step >= 1 ? styles.active : ""}`}>
-            <div className={styles.stepIcon}>{step > 1 ? <HiCheck /> : <FaRobot />}</div>
-            <span>Agent Details</span>
-          </div>
-          <div className={`${styles.stepConnector} ${step >= 2 ? styles.active : ""}`} />
-          <div className={`${styles.step} ${step >= 2 ? styles.active : ""}`}>
-            <div className={styles.stepIcon}>{step > 2 ? <HiCheck /> : <RiTwitterXFill />}</div>
-            <span>Connect 𝕏</span>
-          </div>
-          <div className={`${styles.stepConnector} ${step === 3 ? styles.active : ""}`} />
-          <div className={`${styles.step} ${step === 3 ? styles.active : ""}`}>
-            <div className={styles.stepIcon}>
-              <HiCheck />
+      <div className={styles.main}>
+        <div className={styles.container}>
+          <div className={styles.stepsContainer}>
+            <div className={`${styles.step} ${step >= 1 ? styles.active : ""}`}>
+              <div className={styles.stepIcon}>{step > 1 ? <HiCheck /> : <FaRobot />}</div>
+              <span>Agent Details</span>
             </div>
-            <span>Create Agent</span>
-          </div>
-        </div>
-
-        <div className={`${styles.formContainer} ${loading ? styles.loading : ""}`}>
-          {step === 1 && (
-            <div className={styles.stepContent}>
-              <h2>Agent Details</h2>
-              <div className={styles.imagePreviewContainer}>
-                <Image
-                  src={imagePreview || "/images/placeholder.jpg"}
-                  width={200}
-                  height={200}
-                  alt="Agent Placeholder"
-                  className={styles.imagePreview}
-                  onClick={handleImageClick}
-                  style={{ cursor: "pointer" }}
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label htmlFor="name">Agent Name</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={agentDetails.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter agent name"
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label htmlFor="ticker">Ticker</label>
-                <input
-                  type="text"
-                  id="ticker"
-                  name="ticker"
-                  value={agentDetails.ticker}
-                  onChange={handleInputChange}
-                  placeholder="Enter ticker symbol"
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label htmlFor="background">Background</label>
-                <textarea
-                  id="background"
-                  name="background"
-                  value={agentDetails.background}
-                  onChange={handleInputChange}
-                  placeholder="Describe your agent's background"
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label htmlFor="image">Image</label>
-                <input
-                  type="file"
-                  id="image"
-                  name="image"
-                  ref={fileInputRef}
-                  onChange={handleImageChange}
-                  accept="image/*"
-                />
-              </div>
-              <button className={styles.nextButton} onClick={handleNextStep}>
-                Next Step
-              </button>
+            <div className={`${styles.stepConnector} ${step >= 2 ? styles.active : ""}`} />
+            <div className={`${styles.step} ${step >= 2 ? styles.active : ""}`}>
+              <div className={styles.stepIcon}>{step > 2 ? <HiCheck /> : <RiTwitterXFill />}</div>
+              <span>Connect 𝕏</span>
             </div>
-          )}
+            <div className={`${styles.stepConnector} ${step === 3 ? styles.active : ""}`} />
+            <div className={`${styles.step} ${step === 3 ? styles.active : ""}`}>
+              <div className={styles.stepIcon}>
+                <HiCheck />
+              </div>
+              <span>Create Agent</span>
+            </div>
+          </div>
 
-          {step === 2 && (
-            <div className={styles.stepContent}>
-              <h2>Connect 𝕏</h2>
-              <div className={styles.inputGroup}>
-                <label htmlFor="username">𝕏 Username</label>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={agentDetails.username}
-                  onChange={handleInputChange}
-                  placeholder="@username"
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label htmlFor="email">𝕏 Email</label>
-                <input
-                  type="text"
-                  id="email"
-                  name="email"
-                  value={agentDetails.email}
-                  onChange={handleInputChange}
-                  placeholder="Enter your email"
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label htmlFor="password">𝕏 Password</label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={agentDetails.password}
-                  onChange={handleInputChange}
-                  placeholder="Enter your password"
-                />
-              </div>
-              <h5>Make sure to set your 𝕏 account as automated in account settings</h5>
-              <div className={styles.buttonGroup}>
-                <button className={styles.backButton} onClick={() => setStep(1)}>
-                  Back
-                </button>
-                <button
-                  className={styles.nextButton}
-                  onClick={handleNextStep}
-                  disabled={!agentDetails.username || !agentDetails.password}
-                >
-                  {verifyingTwitter ? "Verifying..." : "Next Step"}
+          <div className={`${styles.formContainer} ${loading ? styles.loading : ""}`}>
+            {step === 1 && (
+              <div className={styles.stepContent}>
+                <h2>Agent Details</h2>
+                <div className={styles.imagePreviewContainer}>
+                  <Image
+                    src={imagePreview || "/images/placeholder.jpg"}
+                    width={200}
+                    height={200}
+                    alt="Agent Placeholder"
+                    className={styles.imagePreview}
+                    onClick={handleImageClick}
+                    style={{ cursor: "pointer" }}
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="name">Agent Name</label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={agentDetails.name}
+                    onChange={handleInputChange}
+                    placeholder="Enter agent name"
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="ticker">Ticker</label>
+                  <input
+                    type="text"
+                    id="ticker"
+                    name="ticker"
+                    value={agentDetails.ticker}
+                    onChange={handleInputChange}
+                    placeholder="Enter ticker symbol"
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="background">Background</label>
+                  <textarea
+                    id="background"
+                    name="background"
+                    value={agentDetails.background}
+                    onChange={handleInputChange}
+                    placeholder="Describe your agent's background"
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="image">Image</label>
+                  <input
+                    type="file"
+                    id="image"
+                    name="image"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    accept="image/*"
+                  />
+                </div>
+                <button className={styles.nextButton} onClick={handleNextStep}>
+                  Next Step
                 </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {step === 3 && (
-            <div className={styles.stepContent}>
-              <h2>Create Your Agent</h2>
-              <div className={styles.summary}>
-                <div className={styles.summaryContent}>
-                  <div className={styles.summaryHeader}>
-                    <Image
-                      src={imagePreview}
-                      width={120}
-                      height={120}
-                      alt={`${agentDetails.name} preview`}
-                      className={styles.summaryImage}
-                    />
-                    <div className={styles.summaryDetails}>
-                      <p>
-                        <strong>Name:</strong> {agentDetails.name}
-                      </p>
-                      <p>
-                        <strong>Ticker:</strong> ${agentDetails.ticker}
-                      </p>
-                      <p>
-                        <strong>𝕏:</strong> @{agentDetails.username}
-                      </p>
+            {step === 2 && (
+              <div className={styles.stepContent}>
+                <h2>Connect 𝕏</h2>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="username">𝕏 Username</label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={agentDetails.username}
+                    onChange={handleInputChange}
+                    placeholder="@username"
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="email">𝕏 Email</label>
+                  <input
+                    type="text"
+                    id="email"
+                    name="email"
+                    value={agentDetails.email}
+                    onChange={handleInputChange}
+                    placeholder="Enter your email"
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="password">𝕏 Password</label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={agentDetails.password}
+                    onChange={handleInputChange}
+                    placeholder="Enter your password"
+                  />
+                </div>
+                <h5>Make sure to set your 𝕏 account as automated in account settings</h5>
+                <div className={styles.buttonGroup}>
+                  <button className={styles.backButton} onClick={() => setStep(1)}>
+                    Back
+                  </button>
+                  <button
+                    className={styles.nextButton}
+                    onClick={handleNextStep}
+                    disabled={!agentDetails.username || !agentDetails.password}
+                  >
+                    {verifyingTwitter ? "Verifying..." : "Next Step"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className={styles.stepContent}>
+                <h2>Create Your Agent</h2>
+                <div className={styles.summary}>
+                  <div className={styles.summaryContent}>
+                    <div className={styles.summaryHeader}>
+                      <Image
+                        src={imagePreview}
+                        width={120}
+                        height={120}
+                        alt={`${agentDetails.name} preview`}
+                        className={styles.summaryImage}
+                      />
+                      <div className={styles.summaryDetails}>
+                        <p>
+                          <strong>Name:</strong> {agentDetails.name}
+                        </p>
+                        <p>
+                          <strong>Ticker:</strong> ${agentDetails.ticker}
+                        </p>
+                        <p>
+                          <strong>𝕏:</strong> @{agentDetails.username}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className={styles.infoBox}>
-                <h4>What happens next?</h4>
-                <ul>
-                  <li>${agentDetails.ticker} will be deployed on base</li>
-                  <li>{agentDetails.name} will start posting to 𝕏 within the hour</li>
-                  <li>You can&apos;t update {agentDetails.name}&apos;s details after creation</li>
-                  <li>${agentDetails.ticker} must bond within 7 days for {agentDetails.name} to stay alive</li>
-                  <li>Initial deployment may take a few minutes</li>
-                </ul>
-              </div>
+                <div className={styles.infoBox}>
+                  <h4>What happens next?</h4>
+                  <ul>
+                    <li>${agentDetails.ticker} will be deployed on base</li>
+                    <li>{agentDetails.name} will start posting to 𝕏 within the hour</li>
+                    <li>You can&apos;t update {agentDetails.name}&apos;s details after creation</li>
+                    <li>
+                      ${agentDetails.ticker} must bond within 48 hoursfor {agentDetails.name} to stay alive
+                    </li>
+                    <li>Initial deployment may take a few minutes</li>
+                  </ul>
+                </div>
 
-              <div className={styles.buttonGroup}>
-                <button className={styles.backButton} onClick={() => setStep(2)} disabled={loading}>
-                  Back
-                </button>
-                <button className={styles.createButton} onClick={handleSubmit} disabled={loading}>
-                  {loading ? `Creating ${agentDetails.name}` : "Create Agent"}
-                </button>
+                <div className={styles.buttonGroup}>
+                  <button className={styles.backButton} onClick={() => setStep(2)} disabled={loading}>
+                    Back
+                  </button>
+                  <button className={styles.createButton} onClick={handleSubmit} disabled={loading}>
+                    {loading ? `Creating ${agentDetails.name}` : "Create Agent"}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </>

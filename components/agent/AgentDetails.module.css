@@ -105,6 +105,10 @@
   border-radius: 12px;
   padding: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  overflow-x: hidden;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .tradingForm {
@@ -154,4 +158,52 @@
   color: #fff;
   font-size: 0.95rem;
   font-weight: 500;
+}
+
+/* mobile styles */
+@media (max-width: 768px) {
+
+  .container {
+    padding: 0;
+  }
+  .header {
+    flex-direction: column;
+    align-items: center;
+    width: 100vw;
+  }
+
+  .headerLeft {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .headerInfo {
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+  }
+
+  .headerInfoRight {
+    align-items: center;
+  }
+
+  .mainContent {
+    grid-template-columns: 1fr;
+  }
+
+  .chartSection {
+    padding: 0.75rem;
+    border-radius: 8px;
+  }
+  
+  .tokenInfo {
+    display: none;
+  }
+
+  .tradingForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
 }

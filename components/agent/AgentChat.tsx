@@ -172,6 +172,7 @@ export default function AgentChat({ agent }: AgentChatProps) {
           </button>
         )}
       </form>
+      <p className={styles.betaDisclaimer}>* Chat is in beta right now and can be unstable</p>
     </div>
   );
 }

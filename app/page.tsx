@@ -17,12 +17,17 @@ export default async function HomePage() {
 
   return (
     <div className={styles.main}>
-        <h1>Recent Agents</h1>
+      <div className={styles.contentContainer}>
+        <div className={styles.headerSection}>
+          <h1>Recently Deployed Agents</h1>
+          <p className={styles.subtitle}>Agent tokens are deployed on base. Agents die if not bonded within 48 hours.</p>
+        </div>
         <div className={styles.agentsContainer}>
           {agents.map((agent) => (
             <AgentCard key={agent.agentId} agent={agent} />
           ))}
         </div>
+      </div>
     </div>
   );
 }

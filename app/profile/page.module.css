@@ -1,0 +1,71 @@
+.main {
+  padding: 2rem 0;
+  width: calc(100% - 220px);
+  margin-left: 220px;
+}
+
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.agentGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.agentCardContainer {
+  position: relative;
+  width: 300px;
+}
+
+.deleteContainer {
+  position: absolute;
+  top: 0;
+  right: -20px;
+}
+
+.deleteButton {
+  background-color: #ff4d4d;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+}
+
+.connectButton {
+  padding: 12px 24px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+.connectButton:hover {
+  background-color: #45a049;
+}
+
+@media (max-width: 768px) {
+    .main {
+      width: 100%;
+      margin-left: 0;
+      margin-bottom: 12vh;
+    }
+  }

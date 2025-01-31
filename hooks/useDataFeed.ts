@@ -93,8 +93,6 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
         });
       }
 
-      console.log("buyTrades", buyTrades);
-
       return [...sellTrades, ...buyTrades];
     };
 
@@ -194,7 +192,7 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
         setTrades(allTrades);
 
         // Build initial OHLC data
-        const cands = aggregateToCandles(allTrades, 60); // 1-min buckets
+        const cands = aggregateToCandles(allTrades, 60); // 1-min buckets TODO: update this
         setOhlcData(cands);
       } catch (err) {
         console.error("Error fetching trades:", err);

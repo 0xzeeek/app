@@ -129,6 +129,13 @@
   animation-delay: 0.4s;
 }
 
+.betaDisclaimer {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  text-align: center;
+  margin-top: 1rem;
+}
+
 @keyframes blink {
   0% { opacity: 0.1; }
   20% { opacity: 1; }
