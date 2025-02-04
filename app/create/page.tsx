@@ -139,7 +139,7 @@ export default function CreatePage() {
     }
 
     // Create the agent via the Ethereum contract
-    setNotification(`Deploying ${ticker} onchain.`);
+    setNotification(`Minting $${ticker}.`);
     const createResult = await create(name, ticker);
 
     if ((createResult as ErrorResult).message) {
@@ -150,7 +150,7 @@ export default function CreatePage() {
     const { token, curve } = createResult as CreateResult;
 
     // Create the agent
-    setNotification(`Creating agent: ${name}`);
+    setNotification(`Deploying agent.`);
     const createResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/create/${userAddress}`, {
       method: "POST",
       body: JSON.stringify({ 

@@ -107,15 +107,21 @@ export default function AgentChat({ agent }: AgentChatProps) {
       type: "message",
       agentId: agent.agentId,
       text: input,
-      username: address?.slice(0, 8),
+      username: address,
       userId: address,
     });
+
+    console.log("address", address);
   };
 
-  const handleConnect = () => {
+  const handleConnect = (e: React.FormEvent) => {
+    e.preventDefault();
+
     console.log("Connecting to WebSocket");
     if (!address) return;
-    connect(agent.agentId, agent.characterFile, address?.slice(0, 8), address);
+    connect(agent.agentId, agent.characterFile, address, address);
+    console.log("Connected to WebSocket");
+    console.log("address", address);
   };
 
   if (!isConnected) {
@@ -153,7 +159,7 @@ export default function AgentChat({ agent }: AgentChatProps) {
         })}
       </div>
 
-      <form onSubmit={handleSubmit} className={styles.inputForm}>
+      <form onSubmit={(e) => websocketConnected ? handleSubmit(e) : handleConnect(e)} className={styles.inputForm}>
         <input
           type="text"
           value={input}
@@ -162,15 +168,9 @@ export default function AgentChat({ agent }: AgentChatProps) {
           className={styles.input}
           disabled={isTyping}
         />
-        {websocketConnected ? (
           <button type="submit" className={styles.sendButton} disabled={isTyping}>
-            Send
+            {websocketConnected ? "Send" : "Connect"}
           </button>
-        ) : (
-          <button type="button" onClick={handleConnect} className={styles.sendButton}>
-            Connect
-          </button>
-        )}
       </form>
       <p className={styles.betaDisclaimer}>* Chat is in beta right now and can be unstable</p>
     </div>

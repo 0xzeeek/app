@@ -31,6 +31,21 @@ export default async function createAgent({
     ]);
     const encryptedPassword = encryptPassword(password);
 
+    const startResponse = await axios.post(`${process.env.SERVER_URL}/start`, {
+      agentId: token,
+      characterFile,
+      twitterCredentials: {
+        username,
+        email,
+        password: encryptedPassword,
+      },
+    });
+
+    if (!startResponse.data?.success) {
+      console.error(new Error(startResponse.data.error));
+      return { success: false, message: "Failed to start agent" };
+    }
+
     const createResponse = await axios.post(`${process.env.SERVER_URL}/create`, {
       agentId: token,
       name,
@@ -49,22 +64,6 @@ export default async function createAgent({
     if (!createResponse.data?.success) {
       console.error(new Error(createResponse.data.error));
       return { success: false, message: "Failed to create agent" };
-    }
-
-    // TODO: turn on start agent
-    const startResponse = await axios.post(`${process.env.SERVER_URL}/start`, {
-      agentId: token,
-      characterFile,
-      twitterCredentials: {
-        username,
-        email,
-        password: encryptedPassword,
-      },
-    });
-
-    if (!startResponse.data?.success) {
-      console.error(new Error(startResponse.data.error));
-      return { success: false, message: "Failed to start agent" };
     }
 
     return { success: true };

@@ -81,6 +81,7 @@ export default async function createCharacterFile(name: string, description: str
 
   if (!response.data.choices[0].message.content) {
     // TODO: add important sentry message heree
+    
     throw new Error("Invalid character file response");
   }
 
