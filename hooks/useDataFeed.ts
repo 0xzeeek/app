@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import CURVE_ABI from "@/lib/curveAbi.json";
-import { WEBSOCKET_RPC } from "@/lib/wagmiConfig";
 import { getPoolAddress } from "@/utils";
+import * as Sentry from '@sentry/nextjs';
 
-// TODO: use process.env.NEXT_PUBLIC_DEPLOY_BLOCK
-const DEPLOY_BLOCK = 7401335;
+const WEBSOCKET_RPC_URL = process.env.NEXT_PUBLIC_WEBSOCKET_RPC_URL || "";
+const DEPLOY_BLOCK = process.env.NEXT_PUBLIC_DEPLOY_BLOCK;
 
 // Minimal V3 ABI
 const UNISWAP_V3_POOL_ABI = [
@@ -53,7 +53,7 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
     let uniswapPoolContract: ethers.Contract | null = null;
 
     // For real-time streaming, you can use a WebSocketProvider:
-    const provider = new ethers.WebSocketProvider(WEBSOCKET_RPC);
+    const provider = new ethers.WebSocketProvider(WEBSOCKET_RPC_URL);
 
     // ------------------------------------------
     // 1) Fetch Bonding Curve trades (Buy & Sell)
@@ -191,10 +191,15 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
         setTrades(allTrades);
 
         // Build initial OHLC data
-        const cands = aggregateToCandles(allTrades, 60); // 1-min buckets TODO: update this
+        const cands = aggregateToCandles(allTrades, 60);
         setOhlcData(cands);
       } catch (err) {
         console.error("Error fetching trades:", err);
+        Sentry.captureException("Error fetching trades", {
+          extra: {
+            error: err,
+          },
+        });
         setError("Error fetching trades");
       } finally {
         setLoading(false);
@@ -230,6 +235,11 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
           setTrades((prev) => [...prev, newTrade].sort((a, b) => a.time - b.time));
         } catch (e) {
           console.error("Error handling BC Buy event:", e);
+          Sentry.captureException("Error handling BC Buy event", {
+            extra: {
+              error: e,
+            },
+          });
         }
       };
 
@@ -256,6 +266,11 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
           setTrades((prev) => [...prev, newTrade].sort((a, b) => a.time - b.time));
         } catch (e) {
           console.error("Error handling BC Sell event:", e);
+          Sentry.captureException("Error handling BC Sell event", {
+            extra: {
+              error: e,
+            },
+          });
         }
       };
 
@@ -321,6 +336,11 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
             }
           } catch (e) {
             console.error("Error in Uniswap V3 Swap event:", e);
+            Sentry.captureException("Error in Uniswap V3 Swap event", {
+              extra: {
+                error: e,
+              },
+            });
           }
         }
       );

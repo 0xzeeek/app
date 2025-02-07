@@ -4,12 +4,14 @@ import { useState } from "react";
 import { usePublicClient, useWriteContract, useWalletClient, useReadContract } from "wagmi";
 import { readContract } from "@wagmi/core";
 import { ethers } from "ethers";
+import * as Sentry from '@sentry/nextjs';
 
 import CURVE_ABI from "@/lib/curveAbi.json";
 import FACTORY_ABI from "@/lib/factoryAbi.json";
 import ERC20_ABI from "@/lib/erc20Abi.json";
 
-import { sepolia } from "@wagmi/core/chains"; // TODO: Confirm chain usage
+// TODO: update to base
+import { sepolia } from "@wagmi/core/chains";
 import { Agent, CreateResult, ErrorResult } from "@/lib/types";
 import config from "@/lib/wagmiConfig";
 import { getPoolData } from "@/utils";
@@ -21,28 +23,12 @@ import { getPoolData } from "@/utils";
 import { TradeType, CurrencyAmount, Token, BigintIsh } from "@uniswap/sdk-core";
 import { Route, SwapQuoter } from "@uniswap/v3-sdk";
 import axios from "axios";
-/**
- * The QuoterV2 contract address on Sepolia for Uniswap V3 (verify as well).
- * Often 0x61fFE014bA17930e677c9e4cA9A5eF521eD62644 for mainnet,
- * but must confirm for Sepolia if it exists.
- */
-const QUOTER_CONTRACT_ADDRESS = "0xEd1f6473345F45b75F8179591dd5bA1888cf2FB3"; // TODO: update to base
 
-/**
- * WETH9 address on Sepolia.
- */
-const WETH_ADDRESS = "0xfff9976782d46cc05630d1f6ebab18b2324d6b14";
-
-/**
- * Example pool fee. 3000 = 0.3%, 500 = 0.05%, etc.
- * Adjust to match your actual pool's fee tier
- */
-const POOL_FEE = 100;
-
-/**
- * factory address
- */
 const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`;
+const WETH_ADDRESS = process.env.NEXT_PUBLIC_WETH_ADDRESS as `0x${string}`;
+const QUOTER_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_UNISWAP_V3_QUOTER_ADDRESS as `0x${string}`;
+
+const POOL_FEE = 100;
 
 /**
  * Helper to parse a decimal string amount to BigInt with 18 decimals
@@ -55,16 +41,16 @@ function parseAmount(amount: string, decimals = 18): bigint {
  * Create a Uniswap Token object for your Agent's token
  */
 function getAgentTokenObject(agentAddr: string, symbol: string) {
-  // TODO: update to base chainId
-  return new Token(11155111, agentAddr, 18, symbol || "AGT", "AgentToken");
+  // TODO: update to base
+  return new Token(sepolia.id, agentAddr, 18, symbol || "AGT", "AgentToken");
 }
 
 /**
  * Create a Uniswap Token object for WETH
  */
 function getWethTokenObject() {
-  // TODO: update to base chainId
-  return new Token(11155111, WETH_ADDRESS, 18, "WETH", "Wrapped ETH");
+  // TODO: update to base
+  return new Token(sepolia.id, WETH_ADDRESS, 18, "WETH", "Wrapped ETH");
 }
 
 /**
@@ -179,6 +165,12 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
       return { message: "Error creating agent" };
     } catch (error) {
       console.error("Error creating agent:", error);
+      Sentry.captureException("Error creating agent token and curve", {
+        extra: {
+          error: error,
+          agent: agent,
+        },
+      });
       return { message: `Error creating agent: ${error}` };
     }
   };
@@ -237,6 +229,12 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         return;
       } else {
         console.error(error);
+        Sentry.captureException("Error buying agent token", {
+          extra: {
+            error: error,
+            agent: agent,
+          },
+        });
       }
     }
   };
@@ -275,6 +273,12 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
       setLoading({ isLoading: false, message: "" });
     } catch (error) {
       console.error(error);
+      Sentry.captureException("Error selling agent token", {
+        extra: {
+          error: error,
+          agent: agent,
+        },
+      });
     }
   };
 
@@ -310,6 +314,12 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
       setLoading({ isLoading: false, message: "" });
     } catch (error) {
       console.error(error);
+      Sentry.captureException("Error approving agent token", {
+        extra: {
+          error: error,
+          agent: agent,
+        },
+      });
     }
   };
 
@@ -450,6 +460,12 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
       };
     } catch (error) {
       console.error("Failed to fetch price & market cap:", error);
+      Sentry.captureException("Error fetching price & market cap", {
+        extra: {
+          error: error,
+          agent: agent,
+        },
+      });
       return { price: "0", marketCap: "0" };
     }
   };

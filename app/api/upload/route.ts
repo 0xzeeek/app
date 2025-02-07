@@ -30,8 +30,7 @@ export async function POST(request: Request) {
     console.log("Image upload result:", imageResult.url.split("?")[0]);
 
     if (imageResult.status !== 200) {
-      console.error(new Error(`Failed to upload image: ${imageResult.statusText}`));
-      return new Response(JSON.stringify({ success: false, message: "Failed to upload image" }), { status: 500 });
+      throw new Error("Failed to upload image");
     }
 
     return new Response(JSON.stringify({ success: true, data: imageResult.url.split("?")[0] }), { status: 200 });

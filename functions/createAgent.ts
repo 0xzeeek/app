@@ -1,6 +1,6 @@
 import axios from "axios";
 import { encryptPassword, getTwitterData, createCharacterFile } from "@/functions";
-
+import * as Sentry from '@sentry/nextjs';
 export default async function createAgent({
   token,
   name,
@@ -43,6 +43,11 @@ export default async function createAgent({
 
     if (!startResponse.data?.success) {
       console.error(new Error(startResponse.data.error));
+      Sentry.captureException("Failed to start agent", {
+        extra: {
+          error: startResponse.data.error,
+        },
+      });
       return { success: false, message: "Failed to start agent" };
     }
 
@@ -63,6 +68,11 @@ export default async function createAgent({
 
     if (!createResponse.data?.success) {
       console.error(new Error(createResponse.data.error));
+      Sentry.captureException("Failed to create agent", {
+        extra: {
+          error: createResponse.data.error,
+        },
+      });
       return { success: false, message: "Failed to create agent" };
     }
 

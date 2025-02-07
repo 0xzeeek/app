@@ -1,6 +1,7 @@
 import { Resource } from "sst";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import * as Sentry from '@sentry/nextjs'; 
 
 const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
@@ -55,6 +56,11 @@ export default async function rateLimit(ip: string): Promise<{ success: boolean;
     return { success: true, message: "Request allowed" };
   } catch (error) {
     console.error(new Error(`Rate limiting error: ${error}`));
+    Sentry.captureException("Rate limiting error", {
+      extra: {
+        error: error,
+      },
+    });
     return { success: false, message: "Internal server error during rate limiting" };
   }
 }

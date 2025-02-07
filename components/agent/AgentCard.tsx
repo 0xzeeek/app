@@ -17,19 +17,22 @@ export default function AgentCard({ agent }: AgentCardProps) {
 
   const [marketCap, setMarketCap] = useState<string>("0");
 
-  const { fetchPriceAndMarketCap } = useEthereum();
+  const { fetchPriceAndMarketCap } = useEthereum({ agent});
   const { isConnected } = useAccount();
 
   useEffect(() => {
     const fetchData = async () => {
-      const { marketCap } = await fetchPriceAndMarketCap(agent);
-      setMarketCap(marketCap);
+      const result = await fetchPriceAndMarketCap(agent);
+      if (result) {
+        const { marketCap } = result;
+        setMarketCap(marketCap);
+      }
     };
 
-    if (isConnected) {
+    if (agent) {
       fetchData();
     }
-  }, [agent, isConnected]);
+  }, [agent, fetchPriceAndMarketCap]);
 
   return (
     <div>

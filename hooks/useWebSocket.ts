@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import * as Sentry from '@sentry/nextjs';
 
 interface WebSocketMessage {
   type: "init" | "message" | "response" | "init_success";
@@ -57,6 +58,11 @@ export function useWebSocket(url: string, onMessage: (data: WebSocketMessage) =>
 
     ws.current.onerror = (error: Event) => {
       console.error("WebSocket error:", error);
+      Sentry.captureException("WebSocket error", {
+        extra: {
+          error: error,
+        },
+      });
       setIsConnected(false);
       onDisconnect?.();
     };

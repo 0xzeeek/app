@@ -7,6 +7,8 @@ import { Agent } from "@/lib/types";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import Loading from "@/components/layout/Loading";
+import * as Sentry from '@sentry/nextjs';
+
 export default function AgentPage() {
   const params = useParams();
   const agentId = params.agentId as string;
@@ -28,6 +30,12 @@ export default function AgentPage() {
         setAgent(result.data);
       } catch (error) {
         console.error(error);
+        Sentry.captureException("Error fetching agent", {
+          extra: {
+            error: error,
+            agentId: agentId,
+          },
+        });
         setError(true);
       } finally {
         setLoading(false);

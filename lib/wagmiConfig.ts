@@ -1,18 +1,16 @@
-import { createConfig } from '@wagmi/core'
-import { base, sepolia } from '@wagmi/core/chains'
-import { webSocket } from 'wagmi'
+import { createConfig } from "@wagmi/core";
+// TODO: update to base
+import { sepolia } from "@wagmi/core/chains";
+import { webSocket } from "wagmi";
 
-// TODO: use process.env.NEXT_PUBLIC_WEBSOCKET_RPC
+const WEBSOCKET_RPC = process.env.NEXT_PUBLIC_WEBSOCKET_RPC_URL;
+
 const config = createConfig({
-  chains: [base, sepolia],
+  chains: [sepolia],
   transports: {
-    [base.id]: webSocket("wss://rpc.ankr.com/base/ws/6d210a387ff8c4cdc9923ab3c3c66967b8da8dce449a1dc429dfa15d0ed97e68"),
-    [sepolia.id]: webSocket(
-      `wss://rpc.ankr.com/eth_sepolia/6d210a387ff8c4cdc9923ab3c3c66967b8da8dce449a1dc429dfa15d0ed97e68`
-    ),
+    // [base.id]: webSocket(WEBSOCKET_RPC),
+    [sepolia.id]: webSocket(WEBSOCKET_RPC),
   },
-})
-
-export const WEBSOCKET_RPC = `wss://rpc.ankr.com/eth_sepolia/6d210a387ff8c4cdc9923ab3c3c66967b8da8dce449a1dc429dfa15d0ed97e68`;
+});
 
 export default config;

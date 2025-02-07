@@ -126,7 +126,6 @@ export default function CreatePage() {
     formData.append("image", image);
 
     const uploadResult = await fetch("/api/upload", {
-      // TODO: rate limit this endpoint
       method: "POST",
       body: formData,
     });

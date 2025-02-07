@@ -56,12 +56,7 @@ import { Token } from "@uniswap/sdk-core";
 import { Pool } from "@uniswap/v3-sdk";
 import { Provider } from "ethers";
 
-/**
- * Uniswap V3 factory address for your network.
- * Example: On Sepolia, the current deployment is:
- *  0x0227628f3F023bb0B980b67D528571c95c6DaC1c
- */
-const UNISWAP_V3_FACTORY_ADDRESS = "0x0227628f3F023bb0B980b67D528571c95c6DaC1c"; // TODO: update to base
+const UNISWAP_V3_FACTORY_ADDRESS = process.env.NEXT_PUBLIC_UNISWAP_V3_FACTORY_ADDRESS as `0x${string}`;
 
 /**
  * Sort two tokens by address in ascending order.
@@ -145,7 +140,7 @@ export async function getPoolData(
 export async function getPoolAddress(agentAddress: string) {
   const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
   const factoryContract = new ethers.Contract(UNISWAP_V3_FACTORY_ADDRESS, IUniswapV3FactoryAbi, provider);
-  const wethAddress = "0xfff9976782d46cc05630d1f6ebab18b2324d6b14"; // TODO: use import from process.env
+  const wethAddress = process.env.NEXT_PUBLIC_WETH_ADDRESS as `0x${string}`;
   const [token0, token1] = sortAddressesByAddress(agentAddress, wethAddress);
   const poolAddress: string = await factoryContract.getPool(token0, token1, 100);
   return poolAddress;

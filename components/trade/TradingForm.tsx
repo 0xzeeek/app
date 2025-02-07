@@ -10,7 +10,7 @@ import config from "@/lib/wagmiConfig";
 import CURVE_ABI from "@/lib/curveAbi.json";
 import axios from "axios";
 import ERC20_ABI from "@/lib/erc20Abi.json";
-
+import * as Sentry from '@sentry/nextjs';
 import styles from "./TradingForm.module.css";
 import { useAccount } from "wagmi";
 
@@ -26,6 +26,11 @@ async function getEthPriceUSD(): Promise<number> {
     return response.data.data.price;
   } catch (error) {
     console.error("Failed to fetch ETH price:", error);
+    Sentry.captureException("Failed to fetch ETH price", {
+      extra: {
+        error: error,
+      },
+    });
     return 0;
   }
 }
@@ -62,6 +67,11 @@ export default function TradingForm({ agent }: TradingFormProps) {
         setCirculatingSupply(supply);
       } catch (error) {
         console.error("Error fetching supply:", error);
+        Sentry.captureException("Error fetching supply", {
+          extra: {
+            error: error,
+          },
+        });
       }
     };
     fetchSupply();
@@ -82,6 +92,11 @@ export default function TradingForm({ agent }: TradingFormProps) {
         setTokenBalance(balance);
       } catch (error) {
         console.error("Error fetching balance:", error);
+        Sentry.captureException("Error fetching balance", {
+          extra: {
+            error: error,
+          },
+        });
       }
     };
 
@@ -114,6 +129,11 @@ export default function TradingForm({ agent }: TradingFormProps) {
       }
     } catch (error) {
       setShowError("Transaction failed: " + error);
+      Sentry.captureException("Transaction failed", {
+        extra: {
+          error: error,
+        },
+      });
     } finally {
       setIsLoading(false);
     }
@@ -154,6 +174,11 @@ export default function TradingForm({ agent }: TradingFormProps) {
       }
     } catch (error) {
       console.error("Error fetching price preview:", error);
+      Sentry.captureException("Error fetching price preview", {
+        extra: {
+          error: error,
+        },
+      });
       setPricePreview("");
       setUsdPrice("");
     }

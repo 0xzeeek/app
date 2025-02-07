@@ -1,7 +1,6 @@
 import crypto from "crypto";
 
-// TODO: move to .env and update
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "zJl4Q61obP6eF/vJ1MtsRbZTjLGRiWUOyB4AMe+slOw=";
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "";
 const IV_LENGTH = 16;
 
 export function encryptPassword(password: string) {

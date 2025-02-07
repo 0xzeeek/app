@@ -8,7 +8,7 @@ import Notification from "@/components/utils/Notification";
 import axios from "axios";
 import { useAccount, useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
-
+import * as Sentry from '@sentry/nextjs';
 export default function ProfilePage() {
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
@@ -68,6 +68,11 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error(error);
+      Sentry.captureException("Failed to delete agent", {
+        extra: {
+          error: error,
+        },
+      });
       setShowError("Failed to delete agent");
     }
   };

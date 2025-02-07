@@ -1,8 +1,7 @@
 import { ethers } from "ethers";
 
-// const RPC_URL = process.env.RPC_URL;
-const RPC_URL = "https://rpc.ankr.com/eth/6d210a387ff8c4cdc9923ab3c3c66967b8da8dce449a1dc429dfa15d0ed97e68"; // TODO: update from mainnet
-const CHAINLINK_ETH_USD_FEED = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"; // Mainnet ETH/USD feed // TODO: update to base
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
+const CHAINLINK_ETH_USD_FEED = process.env.NEXT_PUBLIC_CHAINLINK_ETH_USD_FEED as `0x${string}`;
 
 const aggregatorV3InterfaceABI = [
   {
