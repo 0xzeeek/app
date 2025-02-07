@@ -1,39 +1,61 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Agent } from "@/lib/types";
 import styles from "./AgentCard.module.css";
-
+import { useEthereum } from "@/hooks/useEthereum";
+import { useAccount } from "wagmi";
 interface AgentCardProps {
   agent: Agent;
 }
 
 export default function AgentCard({ agent }: AgentCardProps) {
-  const xHandle = agent.username?.startsWith('@') ? agent.username : `@${agent.username}`;
-  const xBio = agent.bio && agent.bio.length > 100 ? `${agent.bio.substring(0, 100)}...` : agent.bio;
+  const xHandle = agent.username?.startsWith("@") ? agent.username : `@${agent.username}`;
+  const xBio = agent.bio && agent.bio.length > 50 ? `${agent.bio.substring(0, 50)}...` : agent.bio;
+
+  const [marketCap, setMarketCap] = useState<string>("0");
+
+  const { fetchPriceAndMarketCap } = useEthereum();
+  const { isConnected } = useAccount();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const { marketCap } = await fetchPriceAndMarketCap(agent);
+      setMarketCap(marketCap);
+    };
+
+    if (isConnected) {
+      fetchData();
+    }
+  }, [agent, isConnected]);
 
   return (
-    <Link href={`/agent/${agent.agentId}`} className={styles.card}>
-      <div className={styles.imageContainer}>
-        <Image
-          src={agent.image || '/default-agent.png'}
-          alt={`${agent.name} logo`}
-          width={100}
-          height={100}
-          className={styles.agentImage}
-        />
-      </div>
-      <div className={styles.content}>
-        <h3>{agent.name} <span className={styles.ticker}>${agent.ticker}</span></h3>
-        <div className={styles.xHandle}>
-          {xHandle}
+    <div>
+      <Link href={`/agent/${agent.agentId}`} className={styles.card}>
+        <div className={styles.imageContainer}>
+          <Image
+            src={agent.image || "/default-agent.png"}
+            alt={`${agent.name} logo`}
+            width={100}
+            height={100}
+            className={styles.agentImage}
+          />
         </div>
-        <div className={styles.xBio}>
-          {xBio}
+        <div className={styles.content}>
+          <h3>
+            {agent.name} <span className={styles.ticker}>${agent.ticker}</span>
+          </h3>
+          <div className={styles.xHandle}>{xHandle}</div>
+          <div className={styles.xBio}>{xBio}</div>
         </div>
-      </div>
-    </Link>
+      </Link>
+      {marketCap !== "0.00000000" && isConnected && (
+        <div className={styles.priceContainer}>
+          <p>Market Cap: ${marketCap}</p>
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import CURVE_ABI from "@/lib/curveAbi.json";
-import { sepoliaUrl } from "@/lib/wagmiConfig";
+import { WEBSOCKET_RPC } from "@/lib/wagmiConfig";
 import { getPoolAddress } from "@/utils";
 
+// TODO: use process.env.NEXT_PUBLIC_DEPLOY_BLOCK
 const DEPLOY_BLOCK = 7401335;
+
+// Minimal V3 ABI
+const UNISWAP_V3_POOL_ABI = [
+  "function token0() external view returns (address)",
+  "function token1() external view returns (address)",
+  "event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)",
+];
 
 /**
  * We'll store both Buy and Sell trades in the same structure.
@@ -13,11 +21,11 @@ const DEPLOY_BLOCK = 7401335;
 type EventType = "buy" | "sell" | "swap";
 
 interface TradeData {
-  time: number;    // Unix timestamp
+  time: number; // Unix timestamp
   eventType: EventType;
   account: string; // buyer, seller, or swap 'to' address
-  amount: number;  // number of tokens
-  price: number;   // price per token in ETH
+  amount: number; // number of tokens
+  price: number; // price per token in ETH
 }
 
 interface Candlestick {
@@ -45,7 +53,7 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
     let uniswapPoolContract: ethers.Contract | null = null;
 
     // For real-time streaming, you can use a WebSocketProvider:
-    const provider = new ethers.WebSocketProvider(sepoliaUrl);
+    const provider = new ethers.WebSocketProvider(WEBSOCKET_RPC);
 
     // ------------------------------------------
     // 1) Fetch Bonding Curve trades (Buy & Sell)
@@ -106,13 +114,6 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
       const uniswapPoolAddress = await getPoolAddress(agentAddress);
       if (!uniswapPoolAddress) return [];
 
-      // 2b) Minimal V3 pool ABI
-      const UNISWAP_V3_POOL_ABI = [
-        "function token0() external view returns (address)",
-        "function token1() external view returns (address)",
-        "event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)"
-      ];
-
       uniswapPoolContract = new ethers.Contract(uniswapPoolAddress, UNISWAP_V3_POOL_ABI, provider);
 
       // 2c) Fetch historical Swap logs
@@ -144,7 +145,7 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
         // If amount0 < 0 && amount1 > 0 => user buys token0
         if (amount0 < 0 && amount1 > 0) {
           eventType = "buy";
-          tokenAmount = Math.abs(amount0) / 1e18; 
+          tokenAmount = Math.abs(amount0) / 1e18;
           const ethIn = amount1 / 1e18;
           price = ethIn / tokenAmount;
         }
@@ -184,8 +185,6 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
 
         // Uniswap V3 trades (only if pool address is found)
         const uniTrades = await fetchUniswapV3Trades();
-        // console.log("bcTrades", bcTrades);
-        // console.log("uniTrades", uniTrades);
 
         // Merge & sort
         const allTrades = [...bcTrades, ...uniTrades].sort((a, b) => a.time - b.time);
@@ -269,13 +268,6 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
       const uniswapPoolAddress = await getPoolAddress(agentAddress);
       if (!uniswapPoolAddress) return;
 
-      // Minimal V3 ABI again
-      const UNISWAP_V3_POOL_ABI = [
-        "function token0() external view returns (address)",
-        "function token1() external view returns (address)",
-        "event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)"
-      ];
-
       uniswapPoolContract = new ethers.Contract(uniswapPoolAddress, UNISWAP_V3_POOL_ABI, provider);
 
       // Listen for new Swap events
@@ -308,7 +300,7 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
               tokenAmount = Math.abs(a0) / 1e18;
               const ethIn = a1 / 1e18;
               price = ethIn / tokenAmount;
-            } 
+            }
             // If amount0 > 0 && amount1 < 0 => user is selling token0
             else if (a0 > 0 && a1 < 0) {
               eventType = "sell";

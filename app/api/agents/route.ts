@@ -6,6 +6,7 @@ import FACTORY_ABI from "@/lib/factoryAbi.json";
 import { getAgentDetails } from "@/functions";
 
 const FACTORY_ADDRESS = (process.env.NEXT_PUBLIC_FACTORY_ADDRESS || "0x") as `0x${string}`;
+console.log("FACTORY_ADDRESS", FACTORY_ADDRESS);
 
 export async function GET() {
   try {
@@ -42,7 +43,7 @@ export async function GET() {
 
     // Execute all promises in parallel and filter out null results
     const results = await Promise.all(agentPromises);
-    agents.push(...results.filter(agent => agent !== null));
+    agents.push(...results.filter((agent) => agent !== null));
 
     return new Response(JSON.stringify({ success: true, data: agents }), { status: 200 });
   } catch (error) {

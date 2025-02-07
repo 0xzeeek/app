@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import {
-  createChart,
-  IChartApi,
-  ISeriesApi,
-  LineData,
-  Time,
-} from "lightweight-charts";
+import { createChart, IChartApi, ISeriesApi, LineData, Time } from "lightweight-charts";
 import { useDataFeed } from "@/hooks/useDataFeed";
 import { useEthPrice } from "@/hooks/useEthPrice";
 
@@ -63,28 +57,26 @@ export default function CurveChart({ tokenAddress, curveAddress }: CurveChartPro
 
     // 2. Decide whether to show candles or a line based on data length
     let series: ISeriesApi<"Candlestick"> | ISeriesApi<"Line">;
-    const CANDLE_THRESHOLD = 20;  // or whatever number you want
-
-    console.log("ohlcData", ohlcData);
+    const CANDLE_THRESHOLD = 20; // or whatever number you want
 
     if (ohlcData.length < CANDLE_THRESHOLD) {
       // ---- Use Line series ----
       series = chart.addLineSeries({
-        color: "#26a69a",   // or your preferred line color
+        color: "#26a69a", // or your preferred line color
         lineWidth: 2,
       });
 
       // Convert OHLC data to an array of { time, value } for the line
-      const lineData: LineData[] = ohlcData.map((candle) => ({
-        time: candle.time as Time,
-        value: candle.close * ethPrice,
+      const lineData: LineData[] = trades.map((trade) => ({
+        time: trade.time as Time,
+        value: trade.price,
       }));
 
       if (!lineData.length) {
         // If absolutely no data, set a dummy data point for the chart
         const now = Math.floor(Date.now() / 1000);
         series.setData([
-          { time: now - 3600 as Time, value: 0 },
+          { time: (now - 3600) as Time, value: 0 },
           { time: now as Time, value: 0 },
         ]);
       } else {
@@ -114,16 +106,7 @@ export default function CurveChart({ tokenAddress, curveAddress }: CurveChartPro
         close: c.close * ethPrice,
       }));
 
-      if (!finalChartData.length) {
-        // If absolutely no data, set a dummy candle
-        const now = Math.floor(Date.now() / 1000);
-        series.setData([
-          { time: now - 3600 as Time, open: 0, high: 0, low: 0, close: 0 },
-          { time: now as Time, open: 0, high: 0, low: 0, close: 0 },
-        ]);
-      } else {
-        series.setData(finalChartData);
-      }
+      series.setData(finalChartData);
     }
 
     // 3. Auto-scale after setting the data

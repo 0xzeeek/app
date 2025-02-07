@@ -20,7 +20,7 @@ const aggregatorV3InterfaceABI = [
   }
 ];
 
-// Cache the price for 1 minute to avoid unnecessary RPC calls
+// Cache the price for 1 hour to avoid unnecessary RPC calls
 let cachedPrice: number | null = null;
 let lastFetchTime: number = 0;
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds

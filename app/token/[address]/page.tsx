@@ -30,9 +30,7 @@ export default function TokenTradingPage({ params }: { params: Promise<{ address
         setIsValidAddress(true);
 
         // Check if address is an agent
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/agent/${address}?showRemoved=true`
-        );
+        const response = await axios.get(`/api/agent/${address}?showRemoved=true`);
         if (response.data.success) {
           const agent = response.data.data;
           if (agent.remove === "true") {

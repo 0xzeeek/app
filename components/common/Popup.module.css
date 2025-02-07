@@ -1,0 +1,56 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popup {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.popup h2 {
+  color: #333;
+}
+
+.content {
+  margin-bottom: 1.5rem;
+}
+
+.content ul {
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+}
+
+.content li {
+  margin: 0.5rem 0;
+  color: #555;
+}
+
+.closeButton {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+.closeButton:hover {
+  background: var(--accent-color-dark);
+} 

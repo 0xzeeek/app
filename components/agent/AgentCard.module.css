@@ -4,7 +4,7 @@
   padding: 1rem;
   border: 1px solid #eaeaea;
   border-radius: 8px;
-  margin: 1rem 0;
+  margin: 12px 0 6px;
   transition: all 0.2s ease;
   text-decoration: none;
   color: inherit;
@@ -32,14 +32,15 @@
 
 .content h3 {
   margin: 0;
-  font-size: 1.2rem;
-  font-family: var(--creato);
+  font-size: 24px;
+  color: var(--white);
+  /* font-family: var(--creato); */
   font-weight: 400;
 }
 
 .ticker {
-  color: #666;
-  font-size: 0.9em;
+  color: var(--grey);
+  font-size: 18px;
   font-family: var(--creato);
   font-weight: 400;
 }
@@ -47,14 +48,14 @@
 .xHandle {
   margin: 0.5rem 0 0 0;
   font-size: 0.9rem;
-  color: var(--primary);
+  color: var(--white);
   font-family: var(--creato);
 }
 
 .xBio {
   margin: 0.5rem 0 0 0;
   font-size: 0.9rem;
-  color: #4a5568;
+  color: var(--secondary-color);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -66,4 +67,11 @@
   color: #888;
   font-style: italic;
   font-family: var(--creato);
+}
+
+.priceContainer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
 }

@@ -19,7 +19,7 @@
   }
   
   .notification.error {
-    background-color: #e74c3c;
+    background-color: #af2d2d;
   }
   
   .notification.success {
@@ -27,6 +27,6 @@
   }
   
   .notification.info {
-    background-color: #3498db;
+    background-color: var(--secondary-color);
   }
   

@@ -13,6 +13,7 @@ import { HiCheck } from "react-icons/hi";
 import { CreateResult, ErrorResult } from "@/lib/types";
 
 import styles from "./page.module.css";
+import axios from "axios";
 
 export default function CreatePage() {
   const [step, setStep] = useState(1);
@@ -45,7 +46,7 @@ export default function CreatePage() {
     const result = await fetch("/api/verify", {
       method: "POST",
       body: JSON.stringify({
-        username: agentDetails.username.replace('@', ''),
+        username: agentDetails.username.replace("@", ""),
         password: agentDetails.password,
         email: agentDetails.email,
       }),
@@ -150,23 +151,20 @@ export default function CreatePage() {
     const { token, curve } = createResult as CreateResult;
 
     // Create the agent
-    setNotification(`Deploying agent.`);
-    const createResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/create/${userAddress}`, {
-      method: "POST",
-      body: JSON.stringify({ 
-        name, 
-        ticker, 
-        token, 
-        curve, 
-        image: imageUrl, 
-        background, 
-        username: username.replace('@', ''), 
-        email, 
-        password 
-      }),
+    setNotification(`Deploying ${name}.`);
+    const createResponse = await axios.post(`/api/create/${userAddress}`, {
+      name,
+      ticker,
+      token,
+      curve,
+      image: imageUrl,
+      background,
+      username: username.replace("@", ""),
+      email,
+      password,
     });
 
-    const { success, message } = await createResponse.json();
+    const { success, message } = createResponse.data;
 
     if (!success) {
       setShowError(`${message}. Please try again.`);
@@ -231,7 +229,7 @@ export default function CreatePage() {
       if (isTwitterValid) {
         setStep(3);
       } else {
-        setShowError("Could not connect twitter account");
+        setShowError("Could not connect 𝕏 account - check your settings and disable 2FA");
       }
     }
   };
@@ -242,7 +240,7 @@ export default function CreatePage() {
       {notification && <Notification message={notification} type="info" onClose={handleNotificationClose} />}
 
       {/* Error notifications */}
-      {showError && <Notification message={showError} type="error" onClose={handleNotificationClose} />}
+      {showError && <Notification message={showError} type="error" duration={5000} onClose={handleNotificationClose} />}
 
       {/* Loading notifications */}
       {/* {loading.isLoading && <Notification message={loading.message} type="info" duration={8000} />} */}
@@ -292,6 +290,7 @@ export default function CreatePage() {
                     value={agentDetails.name}
                     onChange={handleInputChange}
                     placeholder="Enter agent name"
+                    maxLength={25}
                   />
                 </div>
                 <div className={styles.inputGroup}>
@@ -303,6 +302,7 @@ export default function CreatePage() {
                     value={agentDetails.ticker}
                     onChange={handleInputChange}
                     placeholder="Enter ticker symbol"
+                    maxLength={10}
                   />
                 </div>
                 <div className={styles.inputGroup}>
@@ -368,7 +368,7 @@ export default function CreatePage() {
                     placeholder="Enter your password"
                   />
                 </div>
-                <h5>Make sure to set your 𝕏 account as automated in account settings</h5>
+                <p>Make sure to set your 𝕏 account as automated in account settings</p>
                 <div className={styles.buttonGroup}>
                   <button className={styles.backButton} onClick={() => setStep(1)}>
                     Back
@@ -415,12 +415,10 @@ export default function CreatePage() {
                 <div className={styles.infoBox}>
                   <h4>What happens next?</h4>
                   <ul>
-                    <li>${agentDetails.ticker} will be deployed on base</li>
+                    <li>${agentDetails.ticker} will be deployed on Base</li>
                     <li>{agentDetails.name} will start posting to 𝕏 within the hour</li>
-                    <li>You can&apos;t update {agentDetails.name}&apos;s details after creation</li>
-                    <li>
-                      ${agentDetails.ticker} must bond within 48 hoursfor {agentDetails.name} to stay alive
-                    </li>
+                    <li>${agentDetails.ticker} must bond within 48 hours for {agentDetails.name} to stay alive</li>
+                    <li>Agents with the same 𝕏 account will be overwritten</li>
                     <li>Initial deployment may take a few minutes</li>
                   </ul>
                 </div>

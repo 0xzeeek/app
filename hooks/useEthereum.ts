@@ -202,12 +202,12 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
       })) as bigint;
 
       // get buy price
-      const price = (await readContract(config, {
+      const [cost] = (await readContract(config, {
         abi: CURVE_ABI,
         address: agent.curve,
         functionName: "getBuyPrice",
         args: [supply, amount],
-      })) as bigint;
+      })) as [bigint];
 
       // Send buy
       const contractResult = await writeContractAsync({
@@ -215,7 +215,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         abi: CURVE_ABI,
         functionName: "buy",
         args: [amount],
-        value: price, // already a bigint
+        value: cost, // already a bigint
       });
 
       if (!hasAddedTokenInfo) {
@@ -377,12 +377,12 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
    * Returns { priceInUSD, marketCapInUSD } if successful,
    * or undefined if something fails.
    */
-  const fetchPriceAndMarketCap = async (agent?: Agent) => {
+  const fetchPriceAndMarketCap = async (agent?: Agent): Promise<{ price: string; marketCap: string }> => {
     try {
-      if (!agent) return;
+      if (!agent) return { price: "0", marketCap: "0" };
 
       let priceInETH = 0;
-      let curveExists = false;
+      let tradesExist = false;
       const supply = 1_000_000_000;
 
       if (!finalized) {
@@ -394,22 +394,22 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
         }) as bigint;
 
         if (curveSupply > 0n) {
-          curveExists = true;
+          tradesExist = true;
         }
 
         const oneToken = 1n;
-        const nextPrice = (await readContract(config, {
+        const [cost] = (await readContract(config, {
           abi: CURVE_ABI,
           address: agent.curve,
           functionName: "getBuyPrice",
           args: [curveSupply, oneToken],
-        })) as bigint;
+        })) as [bigint];
 
         // This is the cost in Wei to buy exactly 1 token
-        const nextPriceETH = Number(ethers.formatEther(nextPrice));
+        const nextPriceETH = Number(ethers.formatEther(cost));
         priceInETH = nextPriceETH;
       } else {
-        curveExists = true;
+        tradesExist = true;
         // If finalized, use Uniswap
         if (!walletClient) {
           throw new Error("No wallet signer available to read from Uniswap");
@@ -435,7 +435,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
 
       // Calculate USD values
       const priceInUSD = priceInETH * ethPriceUSD;
-      const marketCapInUSD = curveExists ? priceInUSD * supply : 0;
+      const marketCapInUSD = tradesExist ? priceInUSD * supply : 0;
 
       const formatPrice = (price: number) => {
         if (price < 0.01) {
@@ -450,7 +450,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
       };
     } catch (error) {
       console.error("Failed to fetch price & market cap:", error);
-      return;
+      return { price: "0", marketCap: "0" };
     }
   };
 

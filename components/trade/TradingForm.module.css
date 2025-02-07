@@ -1,6 +1,7 @@
 .form {
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 1.5rem;
 }
 
@@ -10,6 +11,7 @@
   background-color: rgba(255, 255, 255, 0.1);
   padding: 4px;
   border-radius: 8px;
+  width: 100%;
 }
 
 .tab {
@@ -21,6 +23,7 @@
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s ease;
+  font-size: 1rem;
 }
 
 .tab.active {
@@ -31,6 +34,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  width: 100%;
 }
 
 .inputGroup label {
@@ -55,6 +59,7 @@
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
 .submitButton:hover {
@@ -66,7 +71,7 @@
   width: 250px;
   text-align: center;
   padding: 2rem;
-  border: 1px solid #eaeaea;
+  border: 1px solid var(--white);
   border-radius: 8px;
 }
 
@@ -74,7 +79,7 @@
   display: inline-block;
   margin-top: 1rem;
   padding: 0.5rem 1rem;
-  background: #FF007A;
+  background: #ff007a;
   color: white;
   border-radius: 16px;
   text-decoration: none;
@@ -83,4 +88,54 @@
 
 .uniswapLink:hover {
   background: #ff1a88;
-} 
+}
+
+.switchUnits {
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 50%;
+}
+
+.switchUnits:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.pricePreview {
+  font-size: 0.9rem;
+  color: var(--text-color);
+  opacity: 0.8;
+  margin-bottom: 0.25rem;
+}
+
+.percentageButtons {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.percentageButtons button {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-color);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.percentageButtons button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .form {
+    width: 80%;
+  }
+}

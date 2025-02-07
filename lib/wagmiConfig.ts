@@ -2,6 +2,7 @@ import { createConfig } from '@wagmi/core'
 import { base, sepolia } from '@wagmi/core/chains'
 import { webSocket } from 'wagmi'
 
+// TODO: use process.env.NEXT_PUBLIC_WEBSOCKET_RPC
 const config = createConfig({
   chains: [base, sepolia],
   transports: {
@@ -12,6 +13,6 @@ const config = createConfig({
   },
 })
 
-export const sepoliaUrl = `wss://rpc.ankr.com/eth_sepolia/6d210a387ff8c4cdc9923ab3c3c66967b8da8dce449a1dc429dfa15d0ed97e68`;
+export const WEBSOCKET_RPC = `wss://rpc.ankr.com/eth_sepolia/6d210a387ff8c4cdc9923ab3c3c66967b8da8dce449a1dc429dfa15d0ed97e68`;
 
 export default config;

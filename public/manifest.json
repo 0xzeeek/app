@@ -1,7 +1,7 @@
 {
-  "name": "Your App Name",
-  "short_name": "App",
-  "description": "Your app description",
+  "name": "3agent",
+  "short_name": "3agent",
+  "description": "Deploy autonomous agents on Base.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

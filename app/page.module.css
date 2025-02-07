@@ -2,6 +2,7 @@
   padding: 2rem 0;
   width: calc(100% - 220px);
   margin-left: 220px;
+  height: 100vh;
 }
 
 .contentContainer {
@@ -16,7 +17,7 @@
 }
 
 .subtitle {
-  color: #666;
+  color: var(--grey);
   font-size: 1.1rem;
   margin-top: 0.5rem;
 }

@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     console.error(error);
     console.error(new Error(`Unable to verify twitter account: ${error}`));
     return new Response(JSON.stringify({ success: false, message: "Unable to verify twitter account" }), {
-      status: 500,
+      status: 200,
     });
   }
 }

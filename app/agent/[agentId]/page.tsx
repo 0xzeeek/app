@@ -1,49 +1,66 @@
-import { notFound } from "next/navigation";
-import AgentDetails from "@/components/agent/AgentDetails";
+'use client';
 
+import { notFound, useParams } from "next/navigation";
+import AgentDetails from "@/components/agent/AgentDetails";
 import styles from "./page.module.css";
 import { Agent } from "@/lib/types";
 import axios from "axios";
+import { useEffect, useState } from "react";
+import Loading from "@/components/layout/Loading";
+export default function AgentPage() {
+  const params = useParams();
+  const agentId = params.agentId as string;
+  const [agent, setAgent] = useState<Agent | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-interface AgentPageProps {
-  params: Promise<{ agentId: string }>;
-}
+  useEffect(() => {
+    const fetchAgent = async () => {
+      try {
+        const response = await axios.get(`/api/agent/${agentId}`);
+        const result = response.data;
 
-export default async function AgentPage({ params }: AgentPageProps) {
-  const { agentId } = await params;
-  // const agent: Agent | undefined = (await getAgentDetails(address)).data;
+        if (!result.success || !result.data) {
+          setError(true);
+          return;
+        }
 
-  const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/agent/${agentId}`);
-  const result = response.data;
+        setAgent(result.data);
+      } catch (error) {
+        console.error(error);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!result.success) {
-    notFound();
+    fetchAgent();
+  }, [agentId]);
+
+  if (loading) {
+    return <Loading />;
   }
 
-  const agent: Agent = await result.data;
-
-  if (!agent) {
+  if (error || !agent) {
     notFound();
   }
 
   return (
-    <>
-      <div className={styles.container}>
-        <div className={styles.infoRow}>
-          <AgentDetails key={agent.agentId} agent={agent} />
-        </div>
-        <div className={styles.details}>
-          <p>
-            <strong>Address:</strong> {agent?.agentId}
-          </p>
-          <p>
-            <strong>Creator:</strong> {agent?.user}
-          </p>
-          <p>
-            <strong>Curve:</strong> {agent?.curve}
-          </p>
-        </div>
+    <div className={styles.container}>
+      <div className={styles.infoRow}>
+        <AgentDetails key={agent.agentId} agent={agent} />
       </div>
-    </>
+      <div className={styles.details}>
+        <p>
+          <strong>Address:</strong> {agent.agentId}
+        </p>
+        <p>
+          <strong>Creator:</strong> {agent.user}
+        </p>
+        <p>
+          <strong>Curve:</strong> {agent.curve}
+        </p>
+      </div>
+    </div>
   );
 }

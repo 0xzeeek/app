@@ -47,7 +47,7 @@ export default function AgentDetails({ agent }: AgentDetailsProps) {
           <div className={styles.headerInfo}>
             <div className={styles.headerInfoLeft}>
               <h1>{agent.name}</h1>
-              <h3>${agent.ticker}</h3>
+              <p>${agent.ticker}</p>
             </div>
 
             <div className={styles.tokenInfo}>

@@ -54,7 +54,7 @@
 
 .headerInfoLeft h3 {
   margin: 0;
-  color: #666;
+  color: var(--grey);
 }
 
 .headerInfoRight {
@@ -76,7 +76,7 @@
 .xIcon {
   width: 20px;
   height: 20px;
-  color: #666;
+  color: var(--grey);
 }
 
 .twitterLink:hover {
@@ -84,7 +84,7 @@
 }
 
 .twitterLink:hover .xIcon {
-  color: #1DA1F2;
+  color: var(--primary);
 }
 
 .title {
@@ -129,7 +129,7 @@
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.5;
-  color: #999;
+  color: var(--secondary-color);
 }
 
 .tokenInfo {
@@ -150,7 +150,7 @@
 }
 
 .label {
-  color: #666;
+  color: var(--grey);
   font-size: 0.9rem;
 }
 

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useState, useEffect } from "react";
 import styles from "./page.module.css";
@@ -7,7 +7,7 @@ import { Agent } from "@/lib/types";
 import Notification from "@/components/utils/Notification";
 import axios from "axios";
 import { useAccount, useConnect } from "wagmi";
-import { injected } from 'wagmi/connectors';
+import { injected } from "wagmi/connectors";
 
 export default function ProfilePage() {
   const { address, isConnected } = useAccount();
@@ -24,28 +24,26 @@ export default function ProfilePage() {
       }
     };
 
-    window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
   }, []);
 
   useEffect(() => {
     const fetchAgents = async () => {
       if (!address) return;
-      
+
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/user/${address}`, {
-          cache: "no-store",
-        });
-        const result = await response.json();
+        const response = await axios.get(`/api/user/${address}`);
+        const result = response.data;
 
         if (!result.success) {
-          throw new Error(result.error || 'Failed to fetch agents');
+          throw new Error(result.error || "Failed to fetch agents");
         }
 
         setAgents(result.data.reverse());
       } catch (error) {
         console.error(error);
-        setShowError(error instanceof Error ? error.message : 'Failed to fetch agents');
+        setShowError(error instanceof Error ? error.message : "Failed to fetch agents");
       }
     };
 
@@ -60,7 +58,7 @@ export default function ProfilePage() {
     }
 
     try {
-      const response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/agent/${agentId}`);
+      const response = await axios.delete(`/api/agent/${agentId}`);
 
       if (response.data.success) {
         setAgents(agents.filter((agent) => agent.agentId !== agentId));
@@ -70,7 +68,7 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error(error);
-      setShowError('Failed to delete agent');
+      setShowError("Failed to delete agent");
     }
   };
 
@@ -80,10 +78,7 @@ export default function ProfilePage() {
         <div className={styles.container}>
           <h1 className={styles.title}>Profile</h1>
           <p className={styles.subtitle}>Connect your wallet to view your agents</p>
-          <button 
-            onClick={() => connect({ connector: injected() })}
-            className={styles.connectButton}
-          >
+          <button onClick={() => connect({ connector: injected() })} className={styles.connectButton}>
             Connect Wallet
           </button>
         </div>
@@ -95,16 +90,20 @@ export default function ProfilePage() {
     <>
       {showError && <Notification message={showError} type="error" />}
       <div className={styles.main}>
-        <div className={styles.container}>
-          <h1 className={styles.title}>Profile</h1>
-          <h2 className={styles.subtitle}>Your Agents</h2>
+        <div className={styles.contentContainer}>
+          <div className={styles.headerSection}>
+            <h1>Profile</h1>
+            <p className={styles.subtitle}>Your Agents</p>
+          </div>
 
           <div className={styles.agentGrid}>
             {agents.map((agent) => (
               <div key={agent.agentId} className={styles.agentCardContainer}>
                 <AgentCard agent={agent} />
                 <div className={styles.deleteContainer}>
-                  <button className={styles.deleteButton} onClick={() => deleteAgent(agent.agentId)}>{hasPressedDelete === agent.agentId ? "Delete" : "X"}</button>
+                  <button className={styles.deleteButton} onClick={() => deleteAgent(agent.agentId)}>
+                    {hasPressedDelete === agent.agentId ? "Delete" : "X"}
+                  </button>
                 </div>
               </div>
             ))}
