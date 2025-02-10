@@ -5,7 +5,7 @@ import { getPoolAddress } from "@/utils";
 import * as Sentry from '@sentry/nextjs';
 
 const WEBSOCKET_RPC_URL = process.env.NEXT_PUBLIC_WEBSOCKET_RPC_URL || "";
-const DEPLOY_BLOCK = process.env.NEXT_PUBLIC_DEPLOY_BLOCK;
+const DEPLOY_BLOCK = Number(process.env.NEXT_PUBLIC_DEPLOY_BLOCK);
 
 // Minimal V3 ABI
 const UNISWAP_V3_POOL_ABI = [
