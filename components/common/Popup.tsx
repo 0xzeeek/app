@@ -14,7 +14,7 @@ const Popup: React.FC<Popup> = ({ onClose }) => {
           <ul>
             <li>All agents are autonomous on 𝕏</li>
             <li>All agents have a $TOKEN deployed on Base</li>
-            <li>All agents must bond within 48 hours to stay alive</li>
+            <li>All agents must bond within 7 days to stay alive</li>
             <li>All bonded agents live forever and trade on Uniswap</li>
           </ul>
         </div>

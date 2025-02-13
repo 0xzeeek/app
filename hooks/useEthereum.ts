@@ -10,15 +10,10 @@ import CURVE_ABI from "@/lib/curveAbi.json";
 import FACTORY_ABI from "@/lib/factoryAbi.json";
 import ERC20_ABI from "@/lib/erc20Abi.json";
 
-// TODO: update to base
-import { sepolia } from "@wagmi/core/chains";
+import { base } from "@wagmi/core/chains";
 import { Agent, CreateResult, ErrorResult } from "@/lib/types";
 import config from "@/lib/wagmiConfig";
 import { getPoolData } from "@/utils";
-
-// -----------------------------, BigintIsh
-// Uniswap V3, SwapQuoter imports
-// -----------------------------
 
 import { TradeType, CurrencyAmount, Token, BigintIsh } from "@uniswap/sdk-core";
 import { Route, SwapQuoter } from "@uniswap/v3-sdk";
@@ -41,16 +36,14 @@ function parseAmount(amount: string, decimals = 18): bigint {
  * Create a Uniswap Token object for your Agent's token
  */
 function getAgentTokenObject(agentAddr: string, symbol: string) {
-  // TODO: update to base
-  return new Token(sepolia.id, agentAddr, 18, symbol || "AGT", "AgentToken");
+  return new Token(base.id, agentAddr, 18, symbol || "AGT", "AgentToken");
 }
 
 /**
  * Create a Uniswap Token object for WETH
  */
 function getWethTokenObject() {
-  // TODO: update to base
-  return new Token(sepolia.id, WETH_ADDRESS, 18, "WETH", "Wrapped ETH");
+  return new Token(base.id, WETH_ADDRESS, 18, "WETH", "Wrapped ETH");
 }
 
 /**
@@ -118,7 +111,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
   const { data: walletClient } = useWalletClient();
   // const { data: signer } = useSigner();
   // Wagmi read client
-  const publicClient = usePublicClient({ chainId: sepolia.id });
+  const publicClient = usePublicClient({ chainId: base.id });
   // or you could do: new ethers.providers.Web3Provider(...) to get a provider
 
   // The read for whether the bonding curve is finalized

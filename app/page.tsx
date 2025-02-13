@@ -73,7 +73,7 @@ export default function HomePage() {
       <div className={styles.contentContainer}>
         <div className={styles.headerSection}>
           <h1>Recently Deployed Agents</h1>
-          <p className={styles.subtitle}>All agent $TOKENS are deployed on Base | Agents that don&apos;t bond within 48 hours are killed</p>
+          <p className={styles.subtitle}>All agent $TOKENS are deployed on Base | Agents that don&apos;t bond within 7 days are retired</p>
         </div>
         
         {isLoading ? (

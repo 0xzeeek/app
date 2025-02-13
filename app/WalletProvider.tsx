@@ -23,14 +23,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
 const theme: Theme = {
   colors: {
-    accentColor: "#fff",
-    accentColorForeground: "#000",
+    accentColor: "#f9f9f9",
+    accentColorForeground: "#090909",
     actionButtonBorder: "rgba(0, 0, 0, 0.04)",
     actionButtonBorderMobile: "rgba(0, 0, 0, 0.06)",
     actionButtonSecondaryBackground: "rgba(0, 0, 0, 0.06)",
     closeButton: "rgba(60, 66, 66, 0.8)",
     closeButtonBackground: "rgba(0, 0, 0, 0.06)",
-    connectButtonBackground: "#090909",
+    connectButtonBackground: "#171717",
     connectButtonBackgroundError: "#FF494A",
     connectButtonInnerBackground: "linear-gradient(0deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.06))",
     connectButtonText: "#fffef8",
@@ -43,7 +43,7 @@ const theme: Theme = {
     generalBorderDim: "rgba(0, 0, 0, 0.03)",
     menuItemBackground: "rgba(60, 66, 66, 0.1)",
     modalBackdrop: "rgba(0, 0, 0, 0.3)",
-    modalBackground: "#090909",
+    modalBackground: "#171717",
     modalBorder: "transparent",
     modalText: "#fff",
     modalTextDim: "rgba(60, 66, 66, 0.3)",
@@ -55,7 +55,7 @@ const theme: Theme = {
     standby: "#FFD641"
   },
   fonts: {
-    body: 'var(--creato)'
+    body: 'Creato, Helvetica, Arial, sans-serif'
   },
   radii: {
     actionButton: '0px',

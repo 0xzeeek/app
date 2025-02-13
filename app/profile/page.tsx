@@ -6,12 +6,10 @@ import AgentCard from "@/components/agent/AgentCard";
 import { Agent } from "@/lib/types";
 import Notification from "@/components/utils/Notification";
 import axios from "axios";
-import { useAccount, useConnect } from "wagmi";
-import { injected } from "wagmi/connectors";
-import * as Sentry from '@sentry/nextjs';
+import { useAccount } from "wagmi";
+import * as Sentry from "@sentry/nextjs";
 export default function ProfilePage() {
   const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [showError, setShowError] = useState<string | null>(null);
   const [hasPressedDelete, setHasPressedDelete] = useState<string | null>(null);
@@ -77,20 +75,6 @@ export default function ProfilePage() {
     }
   };
 
-  if (!isConnected) {
-    return (
-      <div className={styles.main}>
-        <div className={styles.container}>
-          <h1 className={styles.title}>Profile</h1>
-          <p className={styles.subtitle}>Connect your wallet to view your agents</p>
-          <button onClick={() => connect({ connector: injected() })} className={styles.connectButton}>
-            Connect Wallet
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       {showError && <Notification message={showError} type="error" />}
@@ -98,21 +82,23 @@ export default function ProfilePage() {
         <div className={styles.contentContainer}>
           <div className={styles.headerSection}>
             <h1>Profile</h1>
-            <p className={styles.subtitle}>Your Agents</p>
+            <p className={styles.subtitle}>{isConnected ? "Your Agents" : "Connect wallet to view your agents"}</p>
           </div>
 
-          <div className={styles.agentGrid}>
-            {agents.map((agent) => (
-              <div key={agent.agentId} className={styles.agentCardContainer}>
-                <AgentCard agent={agent} />
-                <div className={styles.deleteContainer}>
-                  <button className={styles.deleteButton} onClick={() => deleteAgent(agent.agentId)}>
-                    {hasPressedDelete === agent.agentId ? "Delete" : "X"}
-                  </button>
+          {isConnected && (
+            <div className={styles.agentGrid}>
+              {agents.map((agent) => (
+                <div key={agent.agentId} className={styles.agentCardContainer}>
+                  <AgentCard agent={agent} />
+                  <div className={styles.deleteContainer}>
+                    <button className={styles.deleteButton} onClick={() => deleteAgent(agent.agentId)}>
+                      {hasPressedDelete === agent.agentId ? "Delete" : "X"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

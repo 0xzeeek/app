@@ -14,6 +14,11 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Bucket"
     }
+    "CreateAgent": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
     "Next": {
       "type": "sst.aws.Nextjs"
       "url": string

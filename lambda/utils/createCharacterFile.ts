@@ -4,7 +4,7 @@ import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { Resource } from "sst";
-import * as Sentry from '@sentry/nextjs';
+
 export default async function createCharacterFile(name: string, description: string) {
 
     try {
@@ -80,11 +80,6 @@ export default async function createCharacterFile(name: string, description: str
   const response = await axios.post(`https://openrouter.ai/api/v1/chat/completions`, body, config);
 
   if (!response.data.choices) {
-    Sentry.captureException("Invalid character file response", {
-      extra: {
-        message: response.data,
-      },
-    });
     throw new Error("Invalid character file response");
   }
 
@@ -123,11 +118,6 @@ export default async function createCharacterFile(name: string, description: str
     return fileUrl;
   } catch (error) {
     console.error("Error creating character file", { cause: error });
-    Sentry.captureException("Error creating character file", {
-      extra: {
-        error: error,
-      },
-    });
     throw new Error("Error creating character", { cause: error });
   }
 }

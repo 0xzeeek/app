@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "3agent-production-agentimage-nbuobfoc.s3.us-east-1.amazonaws.com",
+        hostname: "3agent-production-agentimage-bhzhbcrz.s3.us-east-1.amazonaws.com",
         port: "",
         pathname: "**",
       },

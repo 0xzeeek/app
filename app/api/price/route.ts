@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
+const RPC_URL = process.env.SERVER_RPC_URL;
 const CHAINLINK_ETH_USD_FEED = process.env.NEXT_PUBLIC_CHAINLINK_ETH_USD_FEED as `0x${string}`;
 
 const aggregatorV3InterfaceABI = [

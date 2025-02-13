@@ -6,7 +6,7 @@ import FACTORY_ABI from "@/lib/factoryAbi.json";
 import { getAgentDetails } from "@/functions";
 
 const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`;
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
+const RPC_URL = process.env.SERVER_RPC_URL;
 
 export async function GET(request: Request, { params }: { params: Promise<{ page: number}> }) {
   try {
@@ -17,14 +17,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ page
     const totalAgentsBigInt = await factory.getDeploymentsCount();
     const totalAgents = Number(totalAgentsBigInt);
 
+    console.log("totalAgents", totalAgents);
+
     // Define items per page
     const ITEMS_PER_PAGE = 20;
     
     // Calculate start index for page 1: indices 7 down to 0
     // page 2: indices -1 down to -20 (which will be filtered out)
     const startIndex = totalAgents - ((page - 1) * ITEMS_PER_PAGE) - 1;
-
-    console.log("startIndex", startIndex);
     
     const agents: Agent[] = [];
 

@@ -5,7 +5,8 @@ import Image from "next/image";
 import Notification from "@/components/utils/Notification";
 import { useRouter } from "next/navigation";
 import { useEthereum } from "@/hooks/useEthereum";
-import { useAccount } from "wagmi";
+import { useAccount, useConnect } from "wagmi";
+import { injected } from "wagmi/connectors";
 import { FaRobot } from "react-icons/fa";
 import { RiTwitterXFill } from "react-icons/ri";
 import { HiCheck } from "react-icons/hi";
@@ -14,6 +15,8 @@ import { CreateResult, ErrorResult } from "@/lib/types";
 
 import styles from "./page.module.css";
 import axios from "axios";
+
+const CREATE_AGENT_URL = process.env.NEXT_PUBLIC_CREATE_AGENT_URL || "";
 
 export default function CreatePage() {
   const [step, setStep] = useState(1);
@@ -36,6 +39,7 @@ export default function CreatePage() {
 
   const router = useRouter();
   const { create } = useEthereum();
+  const { connect } = useConnect();
   const { address: userAddress } = useAccount();
 
   // Ref for the file input
@@ -151,7 +155,9 @@ export default function CreatePage() {
 
     // Create the agent
     setNotification(`Deploying ${name}.`);
-    const createResponse = await axios.post(`/api/create/${userAddress}`, {
+    console.log("url:", CREATE_AGENT_URL);
+    const createResponse = await axios.post(CREATE_AGENT_URL, {
+      user: userAddress,
       name,
       ticker,
       token,
@@ -162,6 +168,8 @@ export default function CreatePage() {
       email,
       password,
     });
+
+    console.log("Create response:", createResponse);
 
     const { success, message } = createResponse.data;
 
@@ -219,6 +227,10 @@ export default function CreatePage() {
 
   const handleNextStep = async () => {
     if (step === 1) {
+      if (!userAddress) {
+        connect({ connector: injected() });
+        return;
+      }
       if (validateStepOne()) {
         setStep(2);
       }
@@ -232,6 +244,17 @@ export default function CreatePage() {
       }
     }
   };
+
+  // Needed for SSR issue
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
+
+  const buttonLabel = !hasHydrated
+  ? "Next Step"
+  : userAddress ? "Next Step" : "Connect Wallet";
 
   return (
     <>
@@ -326,7 +349,7 @@ export default function CreatePage() {
                   />
                 </div>
                 <button className={styles.nextButton} onClick={handleNextStep}>
-                  Next Step
+                  {buttonLabel}
                 </button>
               </div>
             )}
@@ -416,7 +439,7 @@ export default function CreatePage() {
                   <ul>
                     <li>${agentDetails.ticker} will be deployed on Base</li>
                     <li>{agentDetails.name} will start posting to 𝕏 within the hour</li>
-                    <li>${agentDetails.ticker} must bond within 48 hours for {agentDetails.name} to stay alive</li>
+                    <li>${agentDetails.ticker} must bond within 7 days for {agentDetails.name} to stay alive</li>
                     <li>Agents with the same 𝕏 account will be overwritten</li>
                     <li>Initial deployment may take a few minutes</li>
                   </ul>
@@ -430,6 +453,7 @@ export default function CreatePage() {
                     {loading ? `Creating ${agentDetails.name}` : "Create Agent"}
                   </button>
                 </div>
+                <p className={styles.comingSoon}>Coming soon:<br />Agents will be able to hold and autonomously trade their own tokens in V2</p>
               </div>
             )}
           </div>

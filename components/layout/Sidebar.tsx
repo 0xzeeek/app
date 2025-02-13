@@ -8,7 +8,6 @@ import { FaDiscord, FaTwitter } from "react-icons/fa";
 export default function Sidebar() {
   return (
     <div className={styles.sidebar}>
-      <div className={styles.navContainer}>
         <nav className={styles.nav}>
           <div className={styles.section}>
             <h3 className={styles.sectionTitle}>Resources</h3>
@@ -34,14 +33,13 @@ export default function Sidebar() {
             </ul>
           </div>
         </nav>
-        <div className={styles.logoContainer}>
-          <Image
-            src="/images/ghost.png"
-            alt="powered by 3agent"
-            fill
-            sizes="(max-width: 768px) 150px, (max-width: 1200px) 100px, 50px"
-          />
-        </div>
+      <div className={styles.logoContainer}>
+        <Image
+          src="/images/ghost.png"
+          alt="powered by 3agent"
+          fill
+          sizes="(max-width: 768px) 150px, (max-width: 1200px) 100px, 50px"
+        />
       </div>
       <div className={styles.poweredBy}>
         <p>powered by 3agent</p>

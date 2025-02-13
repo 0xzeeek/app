@@ -3,11 +3,10 @@
   padding: 16px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font-family: var(--creato);
+  align-items: flex-start;
   font-size: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  /* text-transform: uppercase; */
+  /* letter-spacing: 0.1em; */
   margin-left: 220px;
 }
 
@@ -22,19 +21,15 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-weight: 500;
   transition: all 0.2s ease;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-color);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--white);
+  background-color: var(--white);
+  color: var(--primary-color);
 }
 
 .navLink:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-  border-color: rgba(255, 255, 255, 0.2);
+  /* background-color: rgba(255, 255, 255, 0.2); */
+  transform: translateY(-2px);
+  /* border-color: rgba(255, 255, 255, 0.2); */
 }
 
 .icon {
