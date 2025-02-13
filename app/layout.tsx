@@ -5,7 +5,7 @@ import { Metadata, Viewport } from "next";
 import Sidebar from "@/components/layout/Sidebar";
 
 import { WalletProvider } from "./WalletProvider";
-
+import Script from "next/script";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -43,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <Script defer data-domain="3agent.fun" src="https://plausible.io/js/script.tagged-events.js"></Script>
         <WalletProvider>
           <Header />
           <Sidebar />

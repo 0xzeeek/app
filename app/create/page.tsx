@@ -348,7 +348,7 @@ export default function CreatePage() {
                     accept="image/*"
                   />
                 </div>
-                <button className={styles.nextButton} onClick={handleNextStep}>
+                <button className={`${styles.nextButton} plausible-event-name=info`} onClick={handleNextStep}>
                   {buttonLabel}
                 </button>
               </div>
@@ -390,13 +390,13 @@ export default function CreatePage() {
                     placeholder="Enter your password"
                   />
                 </div>
-                <p>Make sure to set your 𝕏 account as automated in account settings</p>
+                <p>Make sure your 𝕏 account is following relevant accounts + set to automated</p>
                 <div className={styles.buttonGroup}>
                   <button className={styles.backButton} onClick={() => setStep(1)}>
                     Back
                   </button>
                   <button
-                    className={styles.nextButton}
+                    className={`${styles.nextButton} plausible-event-name=verify`}
                     onClick={handleNextStep}
                     disabled={!agentDetails.username || !agentDetails.password}
                   >
@@ -449,11 +449,11 @@ export default function CreatePage() {
                   <button className={styles.backButton} onClick={() => setStep(2)} disabled={loading}>
                     Back
                   </button>
-                  <button className={styles.createButton} onClick={handleSubmit} disabled={loading}>
+                  <button className={`${styles.createButton} plausible-event-name=create`} onClick={handleSubmit} disabled={loading}>
                     {loading ? `Creating ${agentDetails.name}` : "Create Agent"}
                   </button>
                 </div>
-                <p className={styles.comingSoon}>Coming soon:<br />Agents will be able to hold and autonomously trade their own tokens in V2</p>
+                <p className={styles.comingSoon}>Coming soon: agents will hold and trade their own $TOKEN</p>
               </div>
             )}
           </div>
