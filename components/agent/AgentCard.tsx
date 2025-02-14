@@ -6,7 +6,6 @@ import Image from "next/image";
 import { Agent } from "@/lib/types";
 import styles from "./AgentCard.module.css";
 import { useEthereum } from "@/hooks/useEthereum";
-import { useAccount } from "wagmi";
 interface AgentCardProps {
   agent: Agent;
 }
@@ -16,9 +15,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
   const xBio = agent.bio && agent.bio.length > 50 ? `${agent.bio.substring(0, 50)}...` : agent.bio;
 
   const [marketCap, setMarketCap] = useState<string>("0");
-
   const { fetchPriceAndMarketCap } = useEthereum({ agent});
-  const { isConnected } = useAccount();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,6 +25,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
         setMarketCap(marketCap);
       }
     };
+
 
     if (agent) {
       fetchData();
@@ -54,7 +52,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
           <div className={styles.xBio}>{xBio}</div>
         </div>
       </Link>
-      {marketCap !== "0.00000000" && isConnected && (
+      {marketCap !== "0.00000000" && (
         <div className={styles.priceContainer}>
           <p>Market Cap: ${marketCap}</p>
         </div>

@@ -21,14 +21,15 @@ export default function HomePage() {
   const [showPopup, setShowPopup] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [paginationData, setPaginationData] = useState<PaginationData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Fetch agents
   const fetchAgents = async (page: number) => {
-    setIsLoading(true);
     try {
       const response = await axios.get(`/api/agents/${page}`);
       const result = response.data;
+
+      console.log("result", result);
       
       if (!result.success) {
         throw new Error("Failed to fetch agents", { cause: result.error });

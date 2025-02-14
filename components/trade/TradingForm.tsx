@@ -122,10 +122,10 @@ export default function TradingForm({ agent }: TradingFormProps) {
     try {
       if (isBuying) {
         await buy(amount);
-        setAmount("");
+        clearAmounts();
       } else {
         await sell(amount);
-        setAmount("");
+        clearAmounts();
       }
     } catch (error) {
       setShowError("Transaction failed: " + error);

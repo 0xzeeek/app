@@ -19,7 +19,7 @@ export default async function getAgentDetails(
 
     return { success: true, data: agent };
   } catch (error) {
-    console.error(new Error(`Agent details error: ${error}`));
+    console.error(new Error(`Agent details error`, { cause: error }));
     return { success: false, message: "Internal server error during agent details" };
   }
 }

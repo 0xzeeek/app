@@ -148,6 +148,7 @@ export default function CreatePage() {
 
     if ((createResult as ErrorResult).message) {
       setShowError((createResult as ErrorResult).message);
+      setLoading(false);
       return;
     }
 
@@ -159,7 +160,7 @@ export default function CreatePage() {
     const createResponse = await axios.post(CREATE_AGENT_URL, {
       user: userAddress,
       name,
-      ticker,
+      ticker: ticker.toUpperCase(),
       token,
       curve,
       image: imageUrl,
