@@ -6,6 +6,17 @@ import * as Sentry from "@sentry/nextjs";
 
 const WEBSOCKET_RPC_URL = process.env.NEXT_PUBLIC_WEBSOCKET_RPC_URL || "";
 
+// List of dummy token addresses that should show simulated data
+const DUMMY_TOKEN_ADDRESSES = [
+  "0xB6350d91D3d3E9E5E3E53C482e25B2c106E421a6",
+  "0x8d82e7c0a2982011CEC7062A520E6345395F3239",
+  "0x4A759348ef15eCB659ff62DD3D3D8d7e2D519DBD",
+  "0x8AA5c799ED8C29Ec24f85db1048Bf306164aa32B",
+  "0xC29448E2821b75DcD1383bf9ce595f21C7baBDd8",
+  "0x4467bAe6A3FFd9Fc6290226DA5cD339d161F951D",
+  "0xC87653F0E52CfC0C7726c953D3fae966387Ceb97"
+];
+
 // Minimal V3 ABI
 const UNISWAP_V3_POOL_ABI = [
   "function token0() external view returns (address)",
@@ -13,32 +24,24 @@ const UNISWAP_V3_POOL_ABI = [
   "event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)",
 ];
 
-/**
- * We'll store both Buy and Sell trades in the same structure.
- * eventType indicates which event it came from.
- */
 type EventType = "buy" | "sell" | "swap";
 
 interface TradeData {
-  time: number; // Unix timestamp
+  time: number;     // Unix timestamp
   eventType: EventType;
-  account: string; // buyer, seller, or swap 'to' address
-  amount: number; // number of tokens
-  price: number; // price per token in ETH
+  account: string;
+  amount: number;   // number of tokens
+  price: number;    // price per token in ETH
 }
 
 interface Candlestick {
-  time: number;
+  time: number;    // Unix timestamp
   open: number;
   high: number;
   low: number;
   close: number;
 }
 
-/**
- * Provide both the bonding-curve address (curveAddress) AND
- * the "agentAddress" that helps us find the Uniswap V3 pool.
- */
 export function useDataFeed(curveAddress?: string, agentAddress?: string, block?: string) {
   const [trades, setTrades] = useState<TradeData[]>([]);
   const [ohlcData, setOhlcData] = useState<Candlestick[]>([]);
@@ -46,20 +49,32 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
   const [loading, setLoading] = useState<boolean>(false);
   const [poolAddress, setPoolAddress] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!curveAddress) return;
+  // Check if current token is a dummy token
+  const isDummyToken = agentAddress ? DUMMY_TOKEN_ADDRESSES.includes(agentAddress) : false;
 
+  useEffect(() => {
+    // If dummy token, generate dummy trades & skip real on-chain fetch
+    if (isDummyToken && agentAddress) {
+      const { trades: dummyTrades } = generateDummyTradeData(agentAddress);
+      setTrades(dummyTrades);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    
+    // Otherwise, proceed with real fetch
+    if (!curveAddress) return;
     let curveContract: ethers.Contract | null = null;
     let uniswapPoolContract: ethers.Contract | null = null;
 
-    // For real-time streaming, you can use a WebSocketProvider:
+    // For streaming: WebSocketProvider
     const provider = new ethers.WebSocketProvider(WEBSOCKET_RPC_URL);
 
     const fetchPoolAddress = async (): Promise<string> => {
       if (!provider || !agentAddress) return "";
-      const poolAddress = await getPoolAddress(agentAddress);
-      setPoolAddress(poolAddress);
-      return poolAddress;
+      const poolAddr = await getPoolAddress(agentAddress);
+      setPoolAddress(poolAddr);
+      return poolAddr;
     };
 
     const fetchHasBonded = async (): Promise<boolean> => {
@@ -83,16 +98,15 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
       const buyTrades: TradeData[] = [];
       for (const evt of buyLogs) {
         const [buyer, amountBig, costBig] = (evt as ethers.EventLog).args ?? [];
-        const block = await provider.getBlock(evt.blockNumber);
-
+        const blk = await provider.getBlock(evt.blockNumber);
         const amount = Number(amountBig);
         const totalCostEth = Number(ethers.formatEther(costBig));
         buyTrades.push({
-          time: block?.timestamp ?? 0,
+          time: blk?.timestamp ?? 0,
           eventType: "buy",
           account: buyer,
           amount: amount,
-          price: totalCostEth / amount,
+          price: totalCostEth / (amount || 1),
         });
       }
 
@@ -102,121 +116,87 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
       const sellTrades: TradeData[] = [];
       for (const evt of sellLogs) {
         const [seller, amountBig, refundBig] = (evt as ethers.EventLog).args ?? [];
-        const block = await provider.getBlock(evt.blockNumber);
-
+        const blk = await provider.getBlock(evt.blockNumber);
         const amount = Number(amountBig);
         const totalRefundEth = Number(ethers.formatEther(refundBig));
-
         sellTrades.push({
-          time: block?.timestamp ?? 0,
+          time: blk?.timestamp ?? 0,
           eventType: "sell",
           account: seller,
           amount,
-          price: totalRefundEth / amount,
+          price: totalRefundEth / (amount || 1),
         });
       }
 
-      return [...sellTrades, ...buyTrades];
+      return [...buyTrades, ...sellTrades];
     };
 
     // ---------------------------------------------------
-    // 2) Fetch Uniswap V3 trades (Swap events) if pool exists
+    // 2) Fetch Uniswap V3 trades (Swap events)
     // ---------------------------------------------------
     const fetchUniswapV3Trades = async (): Promise<TradeData[]> => {
       if (!provider || !agentAddress || !block) return [];
-
       const latestBlock = await provider.getBlockNumber();
-
-      // 2a) Resolve the actual pool address via your "getPoolAddress" utility
       const uniswapPoolAddress = await getPoolAddress(agentAddress);
       if (!uniswapPoolAddress) return [];
 
       uniswapPoolContract = new ethers.Contract(uniswapPoolAddress, UNISWAP_V3_POOL_ABI, provider);
-
-      // 2c) Fetch historical Swap logs
       const swapFilter = uniswapPoolContract.filters.Swap();
       const swapLogs = await queryFilterInBatches(uniswapPoolContract, swapFilter, Number(block), latestBlock);
 
       const swapTrades: TradeData[] = [];
       for (const evt of swapLogs) {
-        const eventArgs = (evt as ethers.EventLog).args;
-        if (!eventArgs) continue;
-
-        // const sender = eventArgs.sender as string;
-        const recipient = eventArgs.recipient as string;
-        const block = await provider.getBlock(evt.blockNumber);
-
-        // In V3, amount0 / amount1 are signed int256
-        const amount0 = Number(eventArgs.amount0);
-        const amount1 = Number(eventArgs.amount1);
+        const args = (evt as ethers.EventLog).args;
+        if (!args) continue;
+        const recipient = args.recipient as string;
+        const blk = await provider.getBlock(evt.blockNumber);
+        const a0 = Number(args.amount0);
+        const a1 = Number(args.amount1);
 
         let eventType: EventType = "swap";
         let tokenAmount = 0;
         let price = 0;
 
-        // Common interpretation (assuming token0=YourToken, token1=WETH or ETH):
-        // - amount0 < 0 => pool is *sending out* token0 => user *bought* token0
-        // - amount0 > 0 => pool is *receiving* token0 => user *sold* token0
-        // - And vice versa for amount1.
-
-        // If amount0 < 0 && amount1 > 0 => user buys token0
-        if (amount0 < 0 && amount1 > 0) {
+        // Simplistic approach if token0 is our token & token1 is WETH
+        if (a0 < 0 && a1 > 0) {
+          // user is buying token0
           eventType = "buy";
-          tokenAmount = Math.abs(amount0) / 1e18;
-          const ethIn = amount1 / 1e18;
+          tokenAmount = Math.abs(a0) / 1e18;
+          const ethIn = a1 / 1e18;
           price = ethIn / tokenAmount;
-        }
-        // If amount0 > 0 && amount1 < 0 => user sells token0
-        else if (amount0 > 0 && amount1 < 0) {
+        } else if (a0 > 0 && a1 < 0) {
+          // user is selling token0
           eventType = "sell";
-          tokenAmount = amount0 / 1e18;
-          const ethOut = Math.abs(amount1) / 1e18;
+          tokenAmount = a0 / 1e18;
+          const ethOut = Math.abs(a1) / 1e18;
           price = ethOut / tokenAmount;
         }
 
         if (eventType !== "swap") {
           swapTrades.push({
-            time: block?.timestamp ?? 0,
+            time: blk?.timestamp ?? 0,
             eventType,
-            account: recipient, // or sender
+            account: recipient,
             amount: tokenAmount,
             price,
           });
         }
       }
-
       return swapTrades.sort((a, b) => a.time - b.time);
     };
 
-    // ----------------------------------
-    // 3) Combine BC + Uniswap trades
-    // ----------------------------------
     const fetchAllHistoricalTrades = async () => {
-      if (!agentAddress) return; // skip if no agent
+      if (!agentAddress) return;
       setLoading(true);
       setError(null);
-
       try {
-        // Bonding curve trades
         const bcTrades = await fetchBondingCurveTrades();
-
-        // Uniswap V3 trades (only if pool address is found)
         const uniTrades = await fetchUniswapV3Trades();
-
-        // Merge & sort
         const allTrades = [...bcTrades, ...uniTrades].sort((a, b) => a.time - b.time);
         setTrades(allTrades);
-
-        // Build initial OHLC data
-        const cands = aggregateToCandles(allTrades, 60);
-        setOhlcData(cands);
       } catch (err) {
         console.error("Error fetching trades:", err);
-        Sentry.captureException("Error fetching trades", {
-          extra: {
-            error: err,
-          },
-        });
+        Sentry.captureException("Error fetching trades", { extra: { error: err } });
         setError("Error fetching trades");
       } finally {
         setLoading(false);
@@ -224,26 +204,19 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
     };
 
     // ---------------------------------------------
-    // 4) Subscribe to real-time BC + Uniswap events
+    // 3) Subscribe to real-time BC + Uniswap events
     // ---------------------------------------------
     const subscribeToBondingCurveEvents = () => {
       if (!curveContract) return;
 
-      // --- BC "Buy"
-      const handleBuyEvent = async (
-        buyer: string,
-        amountBig: bigint,
-        costBig: bigint,
-        evt: ethers.Log | ethers.EventLog
-      ) => {
+      curveContract.on("Buy", async (buyer: string, amountBig: bigint, costBig: bigint, evt: ethers.Log) => {
         if (!provider) return;
         try {
-          const block = await provider.getBlock(evt.blockNumber);
-
+          const blk = await provider.getBlock(evt.blockNumber);
           const amount = Number(amountBig);
           const costEth = Number(ethers.formatEther(costBig));
           const newTrade: TradeData = {
-            time: block?.timestamp ?? 0,
+            time: blk?.timestamp ?? 0,
             eventType: "buy",
             account: buyer,
             amount,
@@ -252,29 +225,18 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
           setTrades((prev) => [...prev, newTrade].sort((a, b) => a.time - b.time));
         } catch (e) {
           console.error("Error handling BC Buy event:", e);
-          Sentry.captureException("Error handling BC Buy event", {
-            extra: {
-              error: e,
-            },
-          });
+          Sentry.captureException(e);
         }
-      };
+      });
 
-      // --- BC "Sell"
-      const handleSellEvent = async (
-        seller: string,
-        amountBig: bigint,
-        refundBig: bigint,
-        evt: ethers.Log | ethers.EventLog
-      ) => {
+      curveContract.on("Sell", async (seller: string, amountBig: bigint, refundBig: bigint, evt: ethers.Log) => {
         if (!provider) return;
         try {
-          const block = await provider.getBlock(evt.blockNumber);
-
+          const blk = await provider.getBlock(evt.blockNumber);
           const amount = Number(amountBig);
           const refundEth = Number(ethers.formatEther(refundBig));
           const newTrade: TradeData = {
-            time: block?.timestamp ?? 0,
+            time: blk?.timestamp ?? 0,
             eventType: "sell",
             account: seller,
             amount,
@@ -283,16 +245,9 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
           setTrades((prev) => [...prev, newTrade].sort((a, b) => a.time - b.time));
         } catch (e) {
           console.error("Error handling BC Sell event:", e);
-          Sentry.captureException("Error handling BC Sell event", {
-            extra: {
-              error: e,
-            },
-          });
+          Sentry.captureException(e);
         }
-      };
-
-      curveContract.on("Buy", handleBuyEvent);
-      curveContract.on("Sell", handleSellEvent);
+      });
     };
 
     const subscribeToUniswapEvents = async () => {
@@ -302,7 +257,6 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
 
       uniswapPoolContract = new ethers.Contract(uniswapPoolAddress, UNISWAP_V3_POOL_ABI, provider);
 
-      // Listen for new Swap events
       uniswapPoolContract.on(
         "Swap",
         async (
@@ -317,8 +271,7 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
         ) => {
           if (!provider) return;
           try {
-            const block = await provider.getBlock(evt.blockNumber);
-
+            const blk = await provider.getBlock(evt.blockNumber);
             const a0 = Number(amount0);
             const a1 = Number(amount1);
 
@@ -326,15 +279,12 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
             let tokenAmount = 0;
             let price = 0;
 
-            // If amount0 < 0 && amount1 > 0 => user is buying token0
             if (a0 < 0 && a1 > 0) {
               eventType = "buy";
               tokenAmount = Math.abs(a0) / 1e18;
               const ethIn = a1 / 1e18;
               price = ethIn / tokenAmount;
-            }
-            // If amount0 > 0 && amount1 < 0 => user is selling token0
-            else if (a0 > 0 && a1 < 0) {
+            } else if (a0 > 0 && a1 < 0) {
               eventType = "sell";
               tokenAmount = a0 / 1e18;
               const ethOut = Math.abs(a1) / 1e18;
@@ -343,7 +293,7 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
 
             if (eventType !== "swap") {
               const newTrade: TradeData = {
-                time: block?.timestamp ?? 0,
+                time: blk?.timestamp ?? 0,
                 eventType,
                 account: recipient,
                 amount: tokenAmount,
@@ -353,43 +303,43 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
             }
           } catch (e) {
             console.error("Error in Uniswap V3 Swap event:", e);
-            Sentry.captureException("Error in Uniswap V3 Swap event", {
-              extra: {
-                error: e,
-              },
-            });
+            Sentry.captureException(e);
           }
         }
       );
     };
 
     fetchHasBonded().then((hasBonded) => {
-      
       if (hasBonded) {
+        // If the bonding curve is done, we only have historical trades
         fetchPoolAddress();
       } else {
+        // Not bonded => fetch & subscribe
         fetchAllHistoricalTrades().then(() => {
           subscribeToBondingCurveEvents();
-          if (agentAddress) {
-            subscribeToUniswapEvents();
-          }
+          subscribeToUniswapEvents();
         });
       }
     });
 
-    // Cleanup listeners on unmount or re‐render
+    // Cleanup
     return () => {
       curveContract?.removeAllListeners();
       uniswapPoolContract?.removeAllListeners();
     };
-  }, [curveAddress, agentAddress, block]);
+  }, [curveAddress, agentAddress, block, isDummyToken]);
 
-  // ----------------------------------------
-  // 6) Re-aggregate Candles when trades update
-  // ----------------------------------------
+  // --------------------------------------
+  // Re-aggregate to candlesticks each time
+  // trades[] updates
+  // --------------------------------------
   useEffect(() => {
-    if (!trades.length) return;
-    const newCandles = aggregateToCandles(trades, 60); // 1-min buckets
+    if (!trades.length) {
+      setOhlcData([]);
+      return;
+    }
+    // 15-minute intervals (in seconds)
+    const newCandles = aggregateToCandles(trades, 15 * 60);
     setOhlcData(newCandles);
   }, [trades]);
 
@@ -399,41 +349,40 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string, block?
     loading,
     error,
     poolAddress,
+    isDummyToken
   };
 }
 
 /**
- * A naive candlestick aggregator that groups trades by a given bucket size (seconds).
- * We do not differentiate between buys and sells here; we just treat them all as "trades."
+ * Naive candlestick aggregator: groups trades by `bucketSizeSeconds`.
  */
 function aggregateToCandles(trades: TradeData[], bucketSizeSeconds: number): Candlestick[] {
   const sorted = [...trades].sort((a, b) => a.time - b.time);
   if (!sorted.length) return [];
 
-  const csticks: Candlestick[] = [];
+  const candles: Candlestick[] = [];
   let currentBucketStart = sorted[0].time - (sorted[0].time % bucketSizeSeconds);
-  let currentBucketTrades: number[] = [];
+  let currentBucketPrices: number[] = [];
 
   for (const t of sorted) {
     const bucket = t.time - (t.time % bucketSizeSeconds);
     if (bucket === currentBucketStart) {
-      currentBucketTrades.push(t.price);
+      currentBucketPrices.push(t.price);
     } else {
-      // finalize the previous bucket
-      if (currentBucketTrades.length) {
-        csticks.push(buildCandle(currentBucketStart, currentBucketTrades));
+      // finalize previous bucket
+      if (currentBucketPrices.length) {
+        candles.push(buildCandle(currentBucketStart, currentBucketPrices));
       }
       currentBucketStart = bucket;
-      currentBucketTrades = [t.price];
+      currentBucketPrices = [t.price];
     }
   }
 
   // finalize last bucket
-  if (currentBucketTrades.length) {
-    csticks.push(buildCandle(currentBucketStart, currentBucketTrades));
+  if (currentBucketPrices.length) {
+    candles.push(buildCandle(currentBucketStart, currentBucketPrices));
   }
-
-  return csticks;
+  return candles;
 }
 
 function buildCandle(time: number, prices: number[]): Candlestick {
@@ -441,14 +390,7 @@ function buildCandle(time: number, prices: number[]): Candlestick {
   const close = prices[prices.length - 1];
   const high = Math.max(...prices);
   const low = Math.min(...prices);
-
-  return {
-    time,
-    open,
-    high,
-    low,
-    close,
-  };
+  return { time, open, high, low, close };
 }
 
 async function queryFilterInBatches(
@@ -463,10 +405,89 @@ async function queryFilterInBatches(
 
   while (currentFrom <= toBlock) {
     const currentTo = Math.min(currentFrom + batchSize - 1, toBlock);
-    console.log(`Querying logs from block ${currentFrom} to ${currentTo}`);
     const logs = await contract.queryFilter(filter, currentFrom, currentTo);
     allLogs.push(...logs);
     currentFrom = currentTo + 1;
   }
   return allLogs;
+}
+
+/**
+ * Generates a random walk of trades for 1 day (24h).
+ * - Starts at 0.00001268
+ * - Stays below 0.0005
+ * - ~2 trades per minute => 2880 total trades
+ */
+export function generateDummyTradeData(tokenAddress: string): {
+  trades: TradeData[];
+  ohlcData: Candlestick[];
+} {
+  // 1) Basic parameters
+  const START_PRICE = 0.00001268;
+  const MAX_PRICE = 0.0005;
+  const LOWER_BOUND = 0.00000001; // Just to avoid zero
+  const TRADES_PER_MINUTE = 2;
+  const MINUTES_IN_DAY = 24 * 60; // 1440
+  const TOTAL_TRADES = MINUTES_IN_DAY * TRADES_PER_MINUTE; // => 2880
+  const startTime = Math.floor(Date.now() / 1000) - 24 * 3600; // 1 day ago
+  const endTime = Math.floor(Date.now() / 1000);
+
+  // 2) We'll produce a time spacing of ~30s between trades
+  //    so that they fill a 1-day window fairly evenly.
+  const totalSeconds = endTime - startTime;
+  const avgSpacing = totalSeconds / TOTAL_TRADES;
+
+  // 3) Pseudo-random generator seeded by tokenAddress
+  let state = parseInt(tokenAddress.slice(-8), 16) || 1;
+  const pseudoRandom = () => {
+    state = (state * 1664525 + 1013904223) % 4294967296;
+    return state / 4294967296;
+  };
+
+  // 4) Generate trades in a random-walk style
+  let currentPrice = START_PRICE;
+  let currentTime = startTime;
+  const trades: TradeData[] = [];
+
+  for (let i = 0; i < TOTAL_TRADES; i++) {
+    // Random small “volatility” factor, e.g. ±2% around the last price
+    const changePct = (pseudoRandom() * 2 - 1) * 0.02; // up to +/-2%
+    let newPrice = currentPrice * (1 + changePct);
+
+    // Clamp to [LOWER_BOUND, MAX_PRICE]
+    if (newPrice > MAX_PRICE) newPrice = MAX_PRICE;
+    if (newPrice < LOWER_BOUND) newPrice = LOWER_BOUND;
+
+    // “Buy” or “Sell”
+    const eventType: EventType = pseudoRandom() < 0.5 ? "buy" : "sell";
+
+    // Fake account address
+    const account = `0x${Array.from({ length: 40 }, () =>
+      "0123456789abcdef"[Math.floor(pseudoRandom() * 16)]
+    ).join("")}`;
+
+    // Random token amount
+    const amount = 1000 + Math.floor(pseudoRandom() * 9000); // e.g. 1000-10k
+
+    trades.push({
+      time: currentTime,
+      eventType,
+      account,
+      amount,
+      price: newPrice,
+    });
+
+    // Move forward in time by ~avgSpacing ± small randomness
+    // e.g. ~30 seconds each trade
+    currentTime += Math.max(1, Math.floor(avgSpacing * (0.8 + 0.4 * pseudoRandom())));
+
+    currentPrice = newPrice;
+  }
+
+  // 5) If you want candlesticks, aggregate trades into e.g. 1-minute candles
+  //    (or 5-minute, or whatever). We'll do 1-minute here:
+  const bucketSize = 60; // 60 seconds => 1 minute
+  const ohlcData = aggregateToCandles(trades, bucketSize);
+
+  return { trades, ohlcData };
 }

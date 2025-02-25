@@ -19,7 +19,7 @@ import axios from "axios";
 const CREATE_AGENT_URL = process.env.NEXT_PUBLIC_CREATE_AGENT_URL || "";
 
 // Replace the TwitterLoginModal component with a function to open a popup window
-const openTwitterPopup = (setConnectingTwitter) => {
+const openTwitterPopup = (setConnectingTwitter: (value: boolean) => void) => {
   // Define popup dimensions and position
   const width = 500;
   const height = 600;
@@ -46,13 +46,12 @@ const openTwitterPopup = (setConnectingTwitter) => {
 };
 
 export default function CreatePage() {
-  const [step, setStep] = useState(2);
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [showError, setShowError] = useState<string | null>(null);
-  const [verifyingTwitter, setVerifyingTwitter] = useState(false);
   const [agentDetails, setAgentDetails] = useState({
     name: "",
     description: "",
@@ -63,7 +62,7 @@ export default function CreatePage() {
     image: null as File | null,
     background: "",
   });
-  const [twitterModalOpen, setTwitterModalOpen] = useState(false);
+
   const [connectingTwitter, setConnectingTwitter] = useState(false);
 
   const router = useRouter();
@@ -75,26 +74,24 @@ export default function CreatePage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Update the checkTwitterAccount function to work with the popup flow
-  const checkTwitterAccount = async (credentials) => {
-    setVerifyingTwitter(true);
+  const checkTwitterAccount = async (credentials: { username: string; email: string; password: string }) => {
     const result = await fetch("/api/verify", {
       method: "POST",
       body: JSON.stringify({
         username: credentials.username.replace("@", ""),
-        password: credentials.password,
         email: credentials.email,
+        password: credentials.password,
       }),
     });
     const { success } = await result.json();
-    setVerifyingTwitter(false);
     
     if (success) {
       // Update agent details with the verified credentials
       setAgentDetails(prev => ({
         ...prev,
         username: credentials.username.replace("@", ""),
+        email: credentials.email,
         password: credentials.password,
-        email: credentials.email
       }));
     }
     
@@ -271,7 +268,7 @@ export default function CreatePage() {
   // Add a function to handle messages from the popup
   useEffect(() => {
     // Create a message handler for the popup window
-    const handleTwitterMessage = (event) => {
+    const handleTwitterMessage = (event: MessageEvent) => {
       // Make sure the message is from our domain for security
       if (event.origin !== window.location.origin) return;
       
@@ -295,7 +292,7 @@ export default function CreatePage() {
 
   // Add a timeout for the connection
   useEffect(() => {
-    let timeoutId;
+    let timeoutId: NodeJS.Timeout | undefined;
     
     if (connectingTwitter) {
       timeoutId = setTimeout(() => {
@@ -309,20 +306,19 @@ export default function CreatePage() {
     };
   }, [connectingTwitter]);
 
-  const handleTwitterConnect = async (credentials) => {
+  const handleTwitterConnect = async (credentials: { username: string; email: string; password: string }) => {
     console.log('Credentials received:', credentials);
     
     // Keep the connecting state active during verification
     // (setConnectingTwitter is already true at this point)
     
     // Update the connecting message to show verification is happening
-    setVerifyingTwitter(true);
+    setConnectingTwitter(true);
     
     const isTwitterValid = await checkTwitterAccount(credentials);
     
     // Reset states
     setConnectingTwitter(false);
-    setVerifyingTwitter(false);
     
     if (isTwitterValid) {
       setStep(3);

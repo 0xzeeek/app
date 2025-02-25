@@ -45,9 +45,16 @@ export default function TradingForm({ agent }: TradingFormProps) {
   const [usdPrice, setUsdPrice] = useState<string>("");
   const [displayAmount, setDisplayAmount] = useState("");
   const [tokenBalance, setTokenBalance] = useState<bigint>(0n);
+  const [curveBalance, setCurveBalance] = useState<bigint>(0n);
 
   
-  const { loading: notificationLoading, buy, sell, finalized } = useEthereum({ agent });
+  const { 
+    loading: notificationLoading, 
+    buy, 
+    sell, 
+    finalized,
+    getCurveEthBalance 
+  } = useEthereum({ agent });
   const { isConnected, address } = useAccount();
 
   useEffect(() => {
@@ -102,6 +109,33 @@ export default function TradingForm({ agent }: TradingFormProps) {
 
     fetchBalance();
   }, [agent, isConnected, address]);
+
+  useEffect(() => {
+    const fetchCurveBalance = async () => {
+      if (!agent) return;
+      try {
+        const balance = await getCurveEthBalance();
+        setCurveBalance(balance);
+        
+        // For testing only - remove in production
+        // setCurveBalance(7n * 10n ** 18n);
+      } catch (error) {
+        console.error("Error fetching curve balance:", error);
+        Sentry.captureException("Error fetching curve balance", {
+          extra: {
+            error: error,
+          },
+        });
+      }
+    };
+    
+    fetchCurveBalance();
+    
+    // Set up an interval to refresh the balance periodically
+    const intervalId = setInterval(fetchCurveBalance, 30000); // Every 30 seconds
+    
+    return () => clearInterval(intervalId); // Clean up on unmount
+  }, [agent, getCurveEthBalance]);
 
   if (finalized) {
     const uniswapUrl = `${UNISWAP_SWAP_URL}?outputCurrency=${agent.agentId}&chain=sepolia`;
@@ -215,6 +249,12 @@ export default function TradingForm({ agent }: TradingFormProps) {
     setUsdPrice('');
   };
 
+  // Calculate progress percentage
+  const TARGET_ETH = 7n * 10n ** 18n; // 7 ETH in wei
+  const progressPercentage = curveBalance > 0n 
+    ? Number((curveBalance * 100n) / TARGET_ETH) 
+    : 0;
+
   return (
     <>
       {showError && <Notification message={showError} type="error" />}
@@ -275,6 +315,23 @@ export default function TradingForm({ agent }: TradingFormProps) {
           {getButtonText()}
         </button>
       </form>
+
+      {/* Bonding Curve Progress Section */}
+      <div className={styles.progressSection}>
+        <h3 className={styles.progressTitle}>Bonding Curve Progress</h3>
+        <p className={styles.progressDescription}>
+          When the bonding curve reaches 7 ETH, liquidity will be added to Uniswap and trading will move there.
+        </p>
+        <div className={styles.progressBarContainer}>
+          <div 
+            className={styles.progressBar} 
+            style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+          ></div>
+        </div>
+        <div className={styles.progressStats}>
+          <span>{Math.min(progressPercentage, 100).toFixed(1)}% Complete</span>
+        </div>
+      </div>
     </>
   );
 }

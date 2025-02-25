@@ -1,0 +1,10 @@
+.chartContainer {
+  width: 100%;
+  height: 500px;
+  position: relative;
+}
+
+.chartContainer > div {
+  width: 100%;
+  height: 100%;
+} 

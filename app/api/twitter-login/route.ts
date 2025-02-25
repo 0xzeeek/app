@@ -1,6 +1,4 @@
-import { NextRequest } from 'next/server';
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   // HTML content for the Twitter login page with dark theme
   const html = `
     <!DOCTYPE html>

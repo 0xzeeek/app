@@ -38,7 +38,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     const data = JSON.parse(event.body);
 
-    const { user, name, ticker, agentId, curve, block, image, background, username, email, password }: Agent = data;
+    const { user, name, ticker, agentId, curve, block, image, background, username, email,password }: Agent = data;
 
     const [characterFile, twitterData] = await Promise.all([
       createCharacterFile(name, background),

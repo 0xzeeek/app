@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePublicClient, useWriteContract, useWalletClient, useReadContract } from "wagmi";
 import { readContract } from "@wagmi/core";
 import { ethers } from "ethers";
-import * as Sentry from '@sentry/nextjs';
+import * as Sentry from "@sentry/nextjs";
 
 import CURVE_ABI from "@/lib/curveAbi.json";
 import FACTORY_ABI from "@/lib/factoryAbi.json";
@@ -24,6 +24,52 @@ const WETH_ADDRESS = process.env.NEXT_PUBLIC_WETH_ADDRESS as `0x${string}`;
 const QUOTER_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_UNISWAP_V3_QUOTER_ADDRESS as `0x${string}`;
 
 const POOL_FEE = 100;
+
+// List of dummy token addresses that should show simulated data
+const DUMMY_TOKEN_ADDRESSES = [
+  {
+    address: "0xB6350d91D3d3E9E5E3E53C482e25B2c106E421a6",
+    balance: 1n * 10n ** 18n,
+    price: 0.00932367,
+    marketCap: "35,261.26",
+  },
+  {
+    address: "0x8d82e7c0a2982011CEC7062A520E6345395F3239",
+    balance: 2n * 10n ** 18n,
+    price: 0.00936895,
+    marketCap: "45,760.31",
+  },
+  {
+    address: "0x4A759348ef15eCB659ff62DD3D3D8d7e2D519DBD",
+    balance: 3n * 10n ** 18n,
+    price: 0.09624794,
+    marketCap: "53,463.75",
+  },
+  {
+    address: "0x8AA5c799ED8C29Ec24f85db1048Bf306164aa32B",
+    balance: 4n * 10n ** 18n,
+    price: 0.00134684,
+    marketCap: "11,439.86",
+  },
+  {
+    address: "0xC29448E2821b75DcD1383bf9ce595f21C7baBDd8",
+    balance: 5n * 10n ** 18n,
+    price: 0.008345,
+    marketCap: "21,870.00",
+  },
+  {
+    address: "0x4467bAe6A3FFd9Fc6290226DA5cD339d161F951D",
+    balance: 6n * 10n ** 18n,
+    price: 0.007665,
+    marketCap: "16,666.66",
+  },
+  {
+    address: "0xC87653F0E52CfC0C7726c953D3fae966387Ceb97",
+    balance: 4n * 10n ** 18n,
+    price: 0.000156,
+    marketCap: "14,220.20",
+  },
+];
 
 /**
  * Helper to parse a decimal string amount to BigInt with 18 decimals
@@ -244,7 +290,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
     try {
       // Check if approved
       const isApproved = await checkAllowance();
-      
+
       // Approve if needed
       if (!isApproved) {
         await approve();
@@ -384,17 +430,26 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
     try {
       if (!agent) return { price: "0", marketCap: "0" };
 
+      const agentId = agent.agentId as string;
+      if (DUMMY_TOKEN_ADDRESSES.some(token => token.address === agentId)) {
+        const dummyToken = DUMMY_TOKEN_ADDRESSES.find(token => token.address === agentId);
+        return {
+          price: dummyToken?.price.toString() ?? "0",
+          marketCap: dummyToken?.marketCap.toString() ?? "0",
+        };
+      }
+
       let priceInETH = 0;
       let tradesExist = false;
       const supply = 1_000_000_000;
 
       if (!finalized) {
-        const curveSupply = await readContract(config, {
+        const curveSupply = (await readContract(config, {
           abi: CURVE_ABI,
           address: agent.curve,
           functionName: "circulatingSupply",
           args: [],
-        }) as bigint;
+        })) as bigint;
 
         if (curveSupply > 0n) {
           tradesExist = true;
@@ -468,17 +523,41 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
     if (!agent || !walletClient) return false;
 
     try {
-      const allowance = await readContract(config, {
+      const allowance = (await readContract(config, {
         address: agent.agentId,
         abi: ERC20_ABI,
-        functionName: 'allowance',
+        functionName: "allowance",
         args: [walletClient.account.address, agent.curve],
-      }) as bigint;
+      })) as bigint;
 
       return allowance > 0n;
     } catch (error) {
-      console.error('Error checking allowance:', error);
+      console.error("Error checking allowance:", error);
       return false;
+    }
+  };
+
+  const getCurveEthBalance = async (): Promise<bigint> => {   
+    if (!agent?.curve || !agent?.agentId || !publicClient) return 0n;
+
+    const agentId = agent.agentId as string;
+    if (DUMMY_TOKEN_ADDRESSES.some(token => token.address === agentId)) {
+      return DUMMY_TOKEN_ADDRESSES.find(token => token.address === agentId)?.balance ?? 0n;
+    }
+
+    try {
+      // Using wagmi's public client to get the balance
+      const balance = await publicClient.getBalance({
+        address: agent.curve,
+      });
+
+      return balance;
+    } catch (error) {
+      console.error("Error fetching curve ETH balance:", error);
+      Sentry.captureException("Error fetching curve ETH balance", {
+        extra: { error },
+      });
+      return 0n;
     }
   };
 
@@ -492,5 +571,6 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
     addTokenToWallet,
     fetchPriceAndMarketCap,
     finalized,
+    getCurveEthBalance,
   };
 }
