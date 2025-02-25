@@ -86,7 +86,7 @@ export default function AgentDetails({ agent }: AgentDetailsProps) {
 
       <div className={styles.mainContent}>
         <div className={styles.chartSection}>
-          <CurveChart tokenAddress={agent.agentId} curveAddress={agent.curve} />
+          <CurveChart tokenAddress={agent.agentId} curveAddress={agent.curve} block={agent.block} />
         </div>
 
         <div className={styles.tradingForm}>

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Agent } from "@/lib/types";
 import styles from "./AgentCard.module.css";
 import { useEthereum } from "@/hooks/useEthereum";
@@ -36,7 +35,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
     <div>
       <Link href={`/agent/${agent.agentId}`} className={styles.card}>
         <div className={styles.imageContainer}>
-          <Image
+          <img
             src={agent.image || "/default-agent.png"}
             alt={`${agent.name} logo`}
             width={100}
@@ -52,7 +51,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
           <div className={styles.xBio}>{xBio}</div>
         </div>
       </Link>
-      {marketCap !== "0.00000000" && (
+      {marketCap !== "0.00000000" && marketCap !== "0" && (
         <div className={styles.priceContainer}>
           <p>Market Cap: ${marketCap}</p>
         </div>

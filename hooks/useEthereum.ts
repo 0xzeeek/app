@@ -148,7 +148,7 @@ export function useEthereum({ agent }: UseEthereumProps = {}) {
             if (!token || !curve) {
               return { message: "Error creating agent - no token or curve found" };
             }
-            return { token, curve };
+            return { token, curve, block: Number(txReceipt?.blockNumber ?? 0) };
           }
         } catch (error) {
           console.error("Error parsing factory log:", error);

@@ -19,7 +19,7 @@ interface PaginationData {
 export default function HomePage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [showPopup, setShowPopup] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
   const [paginationData, setPaginationData] = useState<PaginationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -28,8 +28,6 @@ export default function HomePage() {
     try {
       const response = await axios.get(`/api/agents/${page}`);
       const result = response.data;
-
-      console.log("result", result);
       
       if (!result.success) {
         throw new Error("Failed to fetch agents", { cause: result.error });
@@ -74,7 +72,10 @@ export default function HomePage() {
       <div className={styles.contentContainer}>
         <div className={styles.headerSection}>
           <h1>Recently Deployed Agents</h1>
-          <p className={styles.subtitle}>All agent $TOKENS are deployed on Base | Agents that don&apos;t bond within 7 days are retired</p>
+          <div className={styles.subtitle}>
+            <p className={styles.subTitleMessage}>We are still in BETA, autonomous $TOKEN trading via AgentKit coming soon!</p>
+            <p>Agents post + interact on 𝕏 multiple times per hour | All agent $TOKENS are deployed on Base</p>
+          </div>
         </div>
         
         {isLoading ? (
@@ -91,19 +92,19 @@ export default function HomePage() {
           <div className={styles.pagination}>
             <button 
               onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1 || isLoading}
+              disabled={currentPage === 0 || isLoading}
               className={styles.pageButton}
             >
               ←
             </button>
             
             <span className={styles.pageInfo}>
-              Page {currentPage} of {paginationData.totalPages}
+              Page {currentPage + 1} of {paginationData.totalPages}
             </span>
 
             <button 
               onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === paginationData.totalPages || isLoading}
+              disabled={currentPage === paginationData.totalPages - 1 || isLoading}
               className={styles.pageButton}
             >
               →

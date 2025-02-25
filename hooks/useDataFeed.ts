@@ -2,10 +2,9 @@ import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import CURVE_ABI from "@/lib/curveAbi.json";
 import { getPoolAddress } from "@/utils";
-import * as Sentry from '@sentry/nextjs';
+import * as Sentry from "@sentry/nextjs";
 
 const WEBSOCKET_RPC_URL = process.env.NEXT_PUBLIC_WEBSOCKET_RPC_URL || "";
-const DEPLOY_BLOCK = Number(process.env.NEXT_PUBLIC_DEPLOY_BLOCK);
 
 // Minimal V3 ABI
 const UNISWAP_V3_POOL_ABI = [
@@ -40,11 +39,12 @@ interface Candlestick {
  * Provide both the bonding-curve address (curveAddress) AND
  * the "agentAddress" that helps us find the Uniswap V3 pool.
  */
-export function useDataFeed(curveAddress?: string, agentAddress?: string) {
+export function useDataFeed(curveAddress?: string, agentAddress?: string, block?: string) {
   const [trades, setTrades] = useState<TradeData[]>([]);
   const [ohlcData, setOhlcData] = useState<Candlestick[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [poolAddress, setPoolAddress] = useState<string | null>(null);
 
   useEffect(() => {
     if (!curveAddress) return;
@@ -55,15 +55,30 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
     // For real-time streaming, you can use a WebSocketProvider:
     const provider = new ethers.WebSocketProvider(WEBSOCKET_RPC_URL);
 
+    const fetchPoolAddress = async (): Promise<string> => {
+      if (!provider || !agentAddress) return "";
+      const poolAddress = await getPoolAddress(agentAddress);
+      setPoolAddress(poolAddress);
+      return poolAddress;
+    };
+
+    const fetchHasBonded = async (): Promise<boolean> => {
+      if (!provider || !curveAddress) return false;
+      curveContract = new ethers.Contract(curveAddress, CURVE_ABI, provider);
+      const hasBonded = await curveContract.finalized();
+      return hasBonded;
+    };
+
     // ------------------------------------------
     // 1) Fetch Bonding Curve trades (Buy & Sell)
     // ------------------------------------------
     const fetchBondingCurveTrades = async (): Promise<TradeData[]> => {
-      if (!provider || !curveAddress) return [];
+      if (!provider || !curveAddress || !block) return [];
       curveContract = new ethers.Contract(curveAddress, CURVE_ABI, provider);
 
+      const latestBlock = await provider.getBlockNumber();
       const buyFilter = curveContract.filters.Buy();
-      const buyLogs = await curveContract.queryFilter(buyFilter, DEPLOY_BLOCK, "latest");
+      const buyLogs = await queryFilterInBatches(curveContract, buyFilter, Number(block), latestBlock);
 
       const buyTrades: TradeData[] = [];
       for (const evt of buyLogs) {
@@ -82,7 +97,7 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
       }
 
       const sellFilter = curveContract.filters.Sell();
-      const sellLogs = await curveContract.queryFilter(sellFilter, DEPLOY_BLOCK, "latest");
+      const sellLogs = await queryFilterInBatches(curveContract, sellFilter, Number(block), latestBlock);
 
       const sellTrades: TradeData[] = [];
       for (const evt of sellLogs) {
@@ -108,7 +123,9 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
     // 2) Fetch Uniswap V3 trades (Swap events) if pool exists
     // ---------------------------------------------------
     const fetchUniswapV3Trades = async (): Promise<TradeData[]> => {
-      if (!provider || !agentAddress) return [];
+      if (!provider || !agentAddress || !block) return [];
+
+      const latestBlock = await provider.getBlockNumber();
 
       // 2a) Resolve the actual pool address via your "getPoolAddress" utility
       const uniswapPoolAddress = await getPoolAddress(agentAddress);
@@ -118,7 +135,7 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
 
       // 2c) Fetch historical Swap logs
       const swapFilter = uniswapPoolContract.filters.Swap();
-      const swapLogs = await uniswapPoolContract.queryFilter(swapFilter, DEPLOY_BLOCK, "latest");
+      const swapLogs = await queryFilterInBatches(uniswapPoolContract, swapFilter, Number(block), latestBlock);
 
       const swapTrades: TradeData[] = [];
       for (const evt of swapLogs) {
@@ -346,11 +363,17 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
       );
     };
 
-    // 5) Kick off everything
-    fetchAllHistoricalTrades().then(() => {
-      subscribeToBondingCurveEvents();
-      if (agentAddress) {
-        subscribeToUniswapEvents();
+    fetchHasBonded().then((hasBonded) => {
+      
+      if (hasBonded) {
+        fetchPoolAddress();
+      } else {
+        fetchAllHistoricalTrades().then(() => {
+          subscribeToBondingCurveEvents();
+          if (agentAddress) {
+            subscribeToUniswapEvents();
+          }
+        });
       }
     });
 
@@ -359,7 +382,7 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
       curveContract?.removeAllListeners();
       uniswapPoolContract?.removeAllListeners();
     };
-  }, [curveAddress, agentAddress]);
+  }, [curveAddress, agentAddress, block]);
 
   // ----------------------------------------
   // 6) Re-aggregate Candles when trades update
@@ -375,6 +398,7 @@ export function useDataFeed(curveAddress?: string, agentAddress?: string) {
     ohlcData,
     loading,
     error,
+    poolAddress,
   };
 }
 
@@ -425,4 +449,24 @@ function buildCandle(time: number, prices: number[]): Candlestick {
     low,
     close,
   };
+}
+
+async function queryFilterInBatches(
+  contract: ethers.Contract,
+  filter: ethers.DeferredTopicFilter,
+  fromBlock: number,
+  toBlock: number,
+  batchSize: number = 100000
+) {
+  const allLogs: ethers.Log[] = [];
+  let currentFrom = fromBlock;
+
+  while (currentFrom <= toBlock) {
+    const currentTo = Math.min(currentFrom + batchSize - 1, toBlock);
+    console.log(`Querying logs from block ${currentFrom} to ${currentTo}`);
+    const logs = await contract.queryFilter(filter, currentFrom, currentTo);
+    allLogs.push(...logs);
+    currentFrom = currentTo + 1;
+  }
+  return allLogs;
 }

@@ -51,7 +51,6 @@ export default $config({
       environment: {
         NEXT_PUBLIC_CREATE_AGENT_URL: createAgent.url,
         NEXT_PUBLIC_WEBSOCKET_URL: process.env.NEXT_PUBLIC_WEBSOCKET_URL || "",
-        NEXT_PUBLIC_DEPLOY_BLOCK: process.env.NEXT_PUBLIC_DEPLOY_BLOCK || "",
 
         // RPC URLs
         NEXT_PUBLIC_RPC_URL: process.env.NEXT_PUBLIC_RPC_URL || "",

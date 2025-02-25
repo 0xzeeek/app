@@ -2,13 +2,12 @@ import { ethers } from "ethers";
 import { Agent } from "@/lib/types";
 
 import FACTORY_ABI from "@/lib/factoryAbi.json";
-// import ERC20_ABI from "@/lib/erc20Abi.json";
 import { getAgentDetails } from "@/functions";
 
 const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`;
 const RPC_URL = process.env.SERVER_RPC_URL;
 
-export async function GET(request: Request, { params }: { params: Promise<{ page: number}> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ page: number }> }) {
   try {
     const { page } = await params;
     const provider = new ethers.JsonRpcProvider(RPC_URL);
@@ -20,17 +19,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ page
     // Define items per page
     const ITEMS_PER_PAGE = 20;
     
-    // Calculate start index for page 1: indices 7 down to 0
-    // page 2: indices -1 down to -20 (which will be filtered out)
-    const startIndex = totalAgents - ((page - 1) * ITEMS_PER_PAGE) - 1;
+    // Calculate start and end indices for pagination
+    const startIndex = totalAgents - (page * ITEMS_PER_PAGE) - 1;
+    const endIndex = Math.max(startIndex - ITEMS_PER_PAGE + 1, 0);
 
-
+    console.log("page", page);
     console.log("startIndex", startIndex);
+    console.log("endIndex", endIndex);
     console.log("totalAgents", totalAgents);
     
     const agents: Agent[] = [];
 
-    for (let i = startIndex; i >= 0; i--) {
+    for (let i = startIndex; i >= endIndex; i--) {
       const { token: agentId } = await factory.deployments(i);
       const { success, data } = await getAgentDetails(agentId);
 

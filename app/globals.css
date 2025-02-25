@@ -30,6 +30,8 @@
   --secondary-color: #4a5568;
   --grey: #666666;
   --white: #f9f9f9;
+  --purple: #800080;
+  --pink: #fc1dd0;
   --accent-color: #4a5568;
   --accent-color-dark: #2d343f;
   --text-color: #fffef8;
@@ -39,6 +41,18 @@
     --creato: "Creato", "Helvetica Neue", Helvetica, Arial, sans-serif;
     --comfortaa: "Comfortaa", "Helvetica Neue", Helvetica, Arial, sans-serif;
     --bebas: "Bebas", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+:root {
+  --vh-100: 100vh;
+  --vh-92: 92vh;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --vh-100: 100dvh;
+    --vh-92: 92dvh;
+  }
 }
 
 html,

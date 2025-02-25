@@ -18,8 +18,35 @@ import axios from "axios";
 
 const CREATE_AGENT_URL = process.env.NEXT_PUBLIC_CREATE_AGENT_URL || "";
 
+// Replace the TwitterLoginModal component with a function to open a popup window
+const openTwitterPopup = (setConnectingTwitter) => {
+  // Define popup dimensions and position
+  const width = 500;
+  const height = 600;
+  const left = window.screen.width / 2 - width / 2;
+  const top = window.screen.height / 2 - height / 2;
+  
+  // Open the popup window with the API route
+  const popup = window.open(
+    '/api/twitter-login',
+    'TwitterLogin',
+    `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
+  );
+  
+  // Check if popup was closed without submitting
+  const checkPopupClosed = setInterval(() => {
+    if (popup && popup.closed) {
+      clearInterval(checkPopupClosed);
+      setConnectingTwitter(false);
+    }
+  }, 1000);
+  
+  // Return the popup reference so we can check its status
+  return popup;
+};
+
 export default function CreatePage() {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(2);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [image, setImage] = useState<File | null>(null);
@@ -36,6 +63,8 @@ export default function CreatePage() {
     image: null as File | null,
     background: "",
   });
+  const [twitterModalOpen, setTwitterModalOpen] = useState(false);
+  const [connectingTwitter, setConnectingTwitter] = useState(false);
 
   const router = useRouter();
   const { create } = useEthereum();
@@ -45,18 +74,30 @@ export default function CreatePage() {
   // Ref for the file input
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const checkTwitterAccount = async () => {
+  // Update the checkTwitterAccount function to work with the popup flow
+  const checkTwitterAccount = async (credentials) => {
     setVerifyingTwitter(true);
     const result = await fetch("/api/verify", {
       method: "POST",
       body: JSON.stringify({
-        username: agentDetails.username.replace("@", ""),
-        password: agentDetails.password,
-        email: agentDetails.email,
+        username: credentials.username.replace("@", ""),
+        password: credentials.password,
+        email: credentials.email,
       }),
     });
     const { success } = await result.json();
     setVerifyingTwitter(false);
+    
+    if (success) {
+      // Update agent details with the verified credentials
+      setAgentDetails(prev => ({
+        ...prev,
+        username: credentials.username.replace("@", ""),
+        password: credentials.password,
+        email: credentials.email
+      }));
+    }
+    
     return success;
   };
 
@@ -152,7 +193,7 @@ export default function CreatePage() {
       return;
     }
 
-    const { token, curve } = createResult as CreateResult;
+    const { token, curve, block } = createResult as CreateResult;
 
     // Create the agent
     setNotification(`Deploying ${name}.`);
@@ -161,8 +202,9 @@ export default function CreatePage() {
       user: userAddress,
       name,
       ticker: ticker.toUpperCase(),
-      token,
+      agentId: token,
       curve,
+      block,
       image: imageUrl,
       background,
       username: username.replace("@", ""),
@@ -226,6 +268,69 @@ export default function CreatePage() {
     return true;
   };
 
+  // Add a function to handle messages from the popup
+  useEffect(() => {
+    // Create a message handler for the popup window
+    const handleTwitterMessage = (event) => {
+      // Make sure the message is from our domain for security
+      if (event.origin !== window.location.origin) return;
+      
+      console.log('Received message:', event.data);
+      
+      // Check if the message contains Twitter credentials
+      if (event.data && event.data.type === 'TWITTER_CREDENTIALS') {
+        const credentials = event.data.credentials;
+        handleTwitterConnect(credentials);
+      }
+    };
+    
+    // Add the event listener
+    window.addEventListener('message', handleTwitterMessage);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('message', handleTwitterMessage);
+    };
+  }, []);
+
+  // Add a timeout for the connection
+  useEffect(() => {
+    let timeoutId;
+    
+    if (connectingTwitter) {
+      timeoutId = setTimeout(() => {
+        setConnectingTwitter(false);
+        setShowError("Connection timed out. Please try again.");
+      }, 60000); // 1 minute timeout
+    }
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [connectingTwitter]);
+
+  const handleTwitterConnect = async (credentials) => {
+    console.log('Credentials received:', credentials);
+    
+    // Keep the connecting state active during verification
+    // (setConnectingTwitter is already true at this point)
+    
+    // Update the connecting message to show verification is happening
+    setVerifyingTwitter(true);
+    
+    const isTwitterValid = await checkTwitterAccount(credentials);
+    
+    // Reset states
+    setConnectingTwitter(false);
+    setVerifyingTwitter(false);
+    
+    if (isTwitterValid) {
+      setStep(3);
+    } else {
+      setShowError("Could not connect 𝕏 account - check your settings and disable 2FA");
+    }
+  };
+
   const handleNextStep = async () => {
     if (step === 1) {
       if (!userAddress) {
@@ -236,13 +341,9 @@ export default function CreatePage() {
         setStep(2);
       }
     } else if (step === 2) {
-      // Verify Twitter account before proceeding
-      const isTwitterValid = await checkTwitterAccount();
-      if (isTwitterValid) {
-        setStep(3);
-      } else {
-        setShowError("Could not connect 𝕏 account - check your settings and disable 2FA");
-      }
+      // Open Twitter popup and set connecting state
+      setConnectingTwitter(true);
+      openTwitterPopup(setConnectingTwitter);
     }
   };
 
@@ -358,50 +459,37 @@ export default function CreatePage() {
             {step === 2 && (
               <div className={styles.stepContent}>
                 <h2>Connect 𝕏</h2>
-                <div className={styles.inputGroup}>
-                  <label htmlFor="username">𝕏 Username</label>
-                  <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={agentDetails.username}
-                    onChange={handleInputChange}
-                    placeholder="@username"
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label htmlFor="email">𝕏 Email</label>
-                  <input
-                    type="text"
-                    id="email"
-                    name="email"
-                    value={agentDetails.email}
-                    onChange={handleInputChange}
-                    placeholder="Enter your email"
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label htmlFor="password">𝕏 Password</label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={agentDetails.password}
-                    onChange={handleInputChange}
-                    placeholder="Enter your password"
-                  />
-                </div>
-                <p>Make sure your 𝕏 account is following relevant accounts + set to automated</p>
-                <div className={styles.buttonGroup}>
-                  <button className={styles.backButton} onClick={() => setStep(1)}>
-                    Back
-                  </button>
-                  <button
-                    className={`${styles.nextButton} plausible-event-name=verify`}
+                <div className={styles.twitterConnectContainer}>
+                  <p>Connect your 𝕏 account to allow your agent to post automatically.</p>
+                  <button 
+                    className={`${styles.twitterConnectButton} plausible-event-name=connect-twitter`} 
                     onClick={handleNextStep}
-                    disabled={!agentDetails.username || !agentDetails.password}
+                    disabled={connectingTwitter}
                   >
-                    {verifyingTwitter ? "Verifying..." : "Next Step"}
+                    <RiTwitterXFill size={20} />
+                    {connectingTwitter ? "Connecting..." : "Connect 𝕏 Account"}
+                  </button>
+                  {connectingTwitter && (
+                    <div className={styles.connectingMessage}>
+                      Please complete the authentication in the popup window...
+                    </div>
+                  )}
+                  <div className={styles.twitterNotes}>
+                    <p>Make sure your 𝕏 account:</p>
+                    <ul>
+                      <li>Has 2FA disabled</li>
+                      <li>Is following relevant accounts</li>
+                      <li>Is set to allow automated posting</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className={styles.buttonGroup}>
+                  <button 
+                    className={styles.backButton} 
+                    onClick={() => setStep(1)}
+                    disabled={connectingTwitter}
+                  >
+                    Back
                   </button>
                 </div>
               </div>

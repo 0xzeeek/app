@@ -1,6 +1,7 @@
 import { APIGatewayProxyHandlerV2, APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
 import { rateLimit, createCharacterFile, getTwitterData, encryptPassword } from "./utils";
 import axios from "axios";
+import { Agent } from "@/lib/types";
 
 export const handler: APIGatewayProxyHandlerV2 = async (
   event: APIGatewayProxyEventV2
@@ -37,16 +38,16 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     const data = JSON.parse(event.body);
 
-    const { user, name, ticker, token, curve, image, background, username, email, password } = data;
+    const { user, name, ticker, agentId, curve, block, image, background, username, email, password }: Agent = data;
 
     const [characterFile, twitterData] = await Promise.all([
       createCharacterFile(name, background),
       getTwitterData(username),
     ]);
-    const encryptedPassword = encryptPassword(password);
+    const encryptedPassword = encryptPassword(password!);
 
     const startResponse = await axios.post(`${process.env.SERVER_URL}/start`, {
-      agentId: token,
+      agentId,
       characterFile,
       twitterCredentials: {
         username,
@@ -61,10 +62,11 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     }
 
     const createResponse = await axios.post(`${process.env.SERVER_URL}/create`, {
-      agentId: token,
+      agentId,
       name,
       ticker,
       curve,
+      block,
       user,
       characterFile,
       image,

@@ -55,7 +55,6 @@ export default function TokenTradingPage({ params }: { params: Promise<{ address
       const result = await fetchPriceAndMarketCap(agent!);
       if (result) {
         const { price, marketCap } = result;
-        console.log(result);
         setPrice(price);
         setMarketCap(marketCap);
       }
@@ -108,7 +107,7 @@ export default function TokenTradingPage({ params }: { params: Promise<{ address
 
         <div className={styles.tradingLayout}>
           <div className={styles.chartSection}>
-            <CurveChart tokenAddress={address} curveAddress={agent.curve} />
+            <CurveChart tokenAddress={address} curveAddress={agent.curve} block={agent.block} />
           </div>
 
           <div className={styles.tradeSection}>

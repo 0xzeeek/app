@@ -9,9 +9,10 @@ export interface Agent {
   email: string;
   password?: string;
   bio: string;
-  description: string;
+  background: string;
   characterFile: string;
   curve: `0x${string}`;
+  block: string;
   user: `0x${string}`;
 }
 
@@ -25,6 +26,7 @@ export interface Message {
 export interface CreateResult {
   token: `0x${string}`;
   curve: `0x${string}`;
+  block: number;
 }
 
 export interface ErrorResult {

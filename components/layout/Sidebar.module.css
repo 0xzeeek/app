@@ -3,7 +3,7 @@
   left: 0;
   top: 0;
   width: 210px;
-  height: 100vh;
+  height: var(--vh-100);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -70,10 +70,8 @@
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
-    bottom: 0;
+    top: var(--vh-92);
     left: 0;
-    right: 0;
-    top: 92vh;
     width: 100%;
     display: flex;
     flex-direction: column;

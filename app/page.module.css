@@ -2,7 +2,6 @@
   padding: 2rem 0;
   width: calc(100% - 220px);
   margin-left: 220px;
-  height: 100vh;
 }
 
 .contentContainer {
@@ -17,10 +16,15 @@
 }
 
 .subtitle {
-  color: var(--grey);
+  color: var(--white);
   font-size: 1.1rem;
   margin-top: 0.5rem;
 }
+
+.subTitleMessage {
+  color: var(--pink);
+}
+
 
 .agentsContainer {
   display: grid;
@@ -29,20 +33,12 @@
   width: 100%;
 }
 
-@media (max-width: 768px) {
-  .main {
-    width: 100%;
-    margin-left: 0;
-    margin-bottom: 12vh;
-  }
-}
-
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 1rem;
-  margin: 2rem 0;
+  margin: 2rem 0 0;
   padding: 1rem;
 }
 
@@ -75,4 +71,12 @@
   text-align: center;
   padding: 2rem;
   color: #666;
+}
+
+@media (max-width: 768px) {
+  .main {
+    width: 100%;
+    margin-left: 0;
+    margin-bottom: 50px;
+  }
 }

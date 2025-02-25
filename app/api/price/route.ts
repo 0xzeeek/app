@@ -29,7 +29,6 @@ export async function GET() {
     // Check if we have a cached price that's still valid
     const now = Date.now();
     if (cachedPrice && now - lastFetchTime < CACHE_DURATION) {
-      console.log("cachedPrice", cachedPrice);
       return new Response(JSON.stringify({ success: true, data: { price: cachedPrice } }));
     }
 

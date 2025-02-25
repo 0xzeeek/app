@@ -1,25 +1,22 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import {
-  createChart,
-  IChartApi,
-  ISeriesApi,
-  LineData,
-  Time,
-} from "lightweight-charts";
+import { createChart, IChartApi, ISeriesApi, LineData, Time } from "lightweight-charts";
 import { useDataFeed } from "@/hooks/useDataFeed";
 import { useEthPrice } from "@/hooks/useEthPrice";
 
 interface CurveChartProps {
   tokenAddress: string;
   curveAddress: string;
+  block: string;
 }
 
-export default function CurveChart({ tokenAddress, curveAddress }: CurveChartProps) {
+export default function CurveChart({ tokenAddress, curveAddress, block }: CurveChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const { ohlcData, trades, loading, error: dataError } = useDataFeed(curveAddress, tokenAddress);
+  const { ohlcData, trades, loading, error: dataError, poolAddress } = useDataFeed(curveAddress, tokenAddress, block);
   const { ethPrice, error: priceError } = useEthPrice();
+
+  // const geckoTerminalRef = useRef<HTMLDivElement>(<div><</div>);
 
   useEffect(() => {
     if (!chartContainerRef.current || !ethPrice) return;
@@ -63,7 +60,7 @@ export default function CurveChart({ tokenAddress, curveAddress }: CurveChartPro
 
     // 2. Decide whether to show candles or a line based on data length
     let series: ISeriesApi<"Candlestick"> | ISeriesApi<"Line">;
-    const CANDLE_THRESHOLD = 10;  // or whatever number you want
+    const CANDLE_THRESHOLD = 10; // or whatever number you want
 
     console.log("ohlcData", ohlcData);
     console.log("trades", trades);
@@ -71,7 +68,7 @@ export default function CurveChart({ tokenAddress, curveAddress }: CurveChartPro
     if (ohlcData.length < CANDLE_THRESHOLD) {
       // ---- Use Line series ----
       series = chart.addLineSeries({
-        color: "#26a69a",   // or your preferred line color
+        color: "#26a69a", // or your preferred line color
         lineWidth: 2,
       });
 
@@ -85,7 +82,7 @@ export default function CurveChart({ tokenAddress, curveAddress }: CurveChartPro
         // If absolutely no data, set a dummy data point for the chart
         const now = Math.floor(Date.now() / 1000);
         series.setData([
-          { time: now - 3600 as Time, value: 0 },
+          { time: (now - 3600) as Time, value: 0 },
           { time: now as Time, value: 0 },
         ]);
       } else {
@@ -119,7 +116,7 @@ export default function CurveChart({ tokenAddress, curveAddress }: CurveChartPro
         // If absolutely no data, set a dummy candle
         const now = Math.floor(Date.now() / 1000);
         series.setData([
-          { time: now - 3600 as Time, open: 0, high: 0, low: 0, close: 0 },
+          { time: (now - 3600) as Time, open: 0, high: 0, low: 0, close: 0 },
           { time: now as Time, open: 0, high: 0, low: 0, close: 0 },
         ]);
       } else {
@@ -140,9 +137,24 @@ export default function CurveChart({ tokenAddress, curveAddress }: CurveChartPro
   if (loading) return <div className="p-4">Loading chart data…</div>;
   if (dataError) return <div className="p-4 text-red-500">Error loading data: {dataError}</div>;
 
+  // TODO: test bonded pool address with GeckoTerminal
+
   return (
-    <div className="border rounded-lg p-4">
-      <div ref={chartContainerRef} />
+    <div>
+      {poolAddress ? (
+        <iframe
+          height="400px"
+          width="600px"
+          id="geckoterminal-embed"
+          title="GeckoTerminal Embed"
+          src={`https://www.geckoterminal.com/base/pools/${poolAddress}?embed=1&info=0&swaps=0&grayscale=1&light_chart=0&chart_type=price&resolution=15m`}
+          frameBorder="0"
+          allow="clipboard-write"
+          allowFullScreen
+        ></iframe>
+      ) : (
+        <div ref={chartContainerRef} />
+      )}
     </div>
   );
 }
