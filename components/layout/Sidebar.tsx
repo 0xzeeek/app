@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import styles from "./Sidebar.module.css";
 import { HiOutlineDocument } from "react-icons/hi";
-import { FaDiscord, FaTwitter } from "react-icons/fa";
+import { FaDiscord, FaTwitter, FaGithub } from "react-icons/fa";
 
 export default function Sidebar() {
   return (
@@ -16,6 +16,12 @@ export default function Sidebar() {
                 <Link href="https://3agent.gitbook.io/3agent" className={styles.link} target="_blank">
                   <HiOutlineDocument className={styles.icon} />
                   <p className={styles.linkDescription}>Docs</p>
+                </Link>
+              </li>
+              <li>
+                <Link href="https://github.com/3agent" className={styles.link} target="_blank">
+                  <FaGithub className={styles.icon} />
+                  <p className={styles.linkDescription}>Github</p>
                 </Link>
               </li>
               <li>
