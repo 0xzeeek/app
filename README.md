@@ -11,6 +11,8 @@ This repo contains the **Next.js** application for **3agent**. It provides a web
 
 This Next.js app integrates with the [3agent Server Service](../server) to handle agent deployment, data retrieval, and updates.
 
+-----
+
 ## Features
 
 1. **Home**  
